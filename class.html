@@ -2557,7 +2557,15 @@
                         return str;
                     });
                     todaysRoutine = routineData || [];
-                    classTests = testsData || [];
+                    classTests = (testsData || []).map(t => ({
+                        id: t.id,
+                        subject: t.subject,
+                        date: t.date,
+                        time: t.time,
+                        venue: t.venue,
+                        chapters: t.chapter || t.chapters || '',
+                        notes: t.notes
+                    }));
                     websiteSettings = settingsData || { logoIcon: 'fa-scroll', websiteName: 'YE-48' };
                     members = membersData || [];
 
@@ -2931,15 +2939,15 @@
                         if (t.id && existingMap.has(t.id)) {
                             // Update by ID
                             const remote = existingMap.get(t.id);
-                            if (remote && (t.subject !== remote.subject || t.date !== remote.date || t.time !== remote.time || t.venue !== remote.venue || t.chapter !== remote.chapter || t.notes !== remote.notes)) {
+                            if (remote && (t.subject !== remote.subject || t.date !== remote.date || t.time !== remote.time || t.venue !== remote.venue || (t.chapters || t.chapter) !== remote.chapter || t.notes !== remote.notes)) {
                                 await supabaseClient.updateClassTest(t.id, {
-                                    subject: t.subject, date: t.date, time: t.time || '', venue: t.venue || '', chapter: t.chapter || '', notes: t.notes || ''
+                                    subject: t.subject, date: t.date, time: t.time || '', venue: t.venue || '', chapter: t.chapters || t.chapter || '', notes: t.notes || ''
                                 });
                             }
                         } else if (!existingKeys.has(key)) {
                             // Add new (no matching ID and no matching subject+date+time)
                             const result = await supabaseClient.addClassTest({
-                                subject: t.subject, date: t.date, time: t.time || '', venue: t.venue || '', chapter: t.chapter || '', notes: t.notes || ''
+                                subject: t.subject, date: t.date, time: t.time || '', venue: t.venue || '', chapter: t.chapters || t.chapter || '', notes: t.notes || ''
                             });
                             // Capture the returned ID
                             if (result && result[0] && result[0].id) {
