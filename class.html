@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -271,17 +271,18 @@
         .sidebar {
             width: 280px;
             transition: width 0.3s ease;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(24px);
             border-right: 1px solid rgba(203, 213, 225, 0.4);
             padding: 28px 20px;
             display: flex;
             flex-direction: column;
-            position: sticky;
+            position: fixed;
             top: 0;
+            left: 0;
             height: 100vh;
             overflow-y: auto;
-            z-index: 50;
+            z-index: 100;
         }
 
         .sidebar.collapsed {
@@ -581,8 +582,8 @@
             flex: 1;
             padding: 32px 40px;
             max-width: 1440px;
-            margin: 0 auto;
-            width: 100%;
+            margin: 0 0 0 280px;
+            width: calc(100% - 280px);
             overflow-y: auto;
         }
 
@@ -1377,7 +1378,8 @@
 
             .main-content {
                 margin-left: 0 !important;
-                margin-bottom: 80px !important;
+                width: 100% !important;
+                max-width: 100% !important;
                 padding: 16px !important;
             }
 
@@ -1941,7 +1943,30 @@
 
             async getMembers() { return this.request('members?order=created_at'); },
             async addMember(member) { return this.request('members', { method: 'POST', body: member }); },
-            async deleteMember(id) { return this.request(`members?id=eq.${id}`, { method: 'DELETE' }); }
+            async deleteMember(id) { return this.request(`members?id=eq.${id}`, { method: 'DELETE' }); },
+
+            // Clear all data from Supabase
+            async clearAllData() {
+                const tables = ['notice_read_status', 'subjects', 'notes', 'notices', 'class_tests', 'todays_routine', 'members', 'website_settings'];
+                for (const table of tables) {
+                    try {
+                        // First get all records
+                        const data = await this.request(`${table}?select=id`);
+                        if (data && Array.isArray(data)) {
+                            // Delete each record by ID
+                            for (const item of data) {
+                                try {
+                                    await this.request(`${table}?id=eq.${item.id}`, { method: 'DELETE' });
+                                } catch (e) {
+                                    console.error(`Error deleting ${table} item ${item.id}:`, e);
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Error clearing ${table}:`, error);
+                    }
+                }
+            }
         };
 
         window.supabaseClient = supabaseClient;
@@ -2566,15 +2591,8 @@
             if (!fullSubject) return '';
             // Remove course code (e.g., "PHY101 - ")
             let title = fullSubject.replace(/^[A-Za-z0-9]+ - /, '');
-            // Also try removing any code format like "CSE-101 - " or "101 - "
-            title = title.replace(/^[A-Za-z0-9]+-[0-9]+ - /, '');
             // Remove teacher name (e.g., " (Dr. Rahman)")
             title = title.replace(/ \([^)]+\)$/, '');
-            // If title is empty or same as input, return the original without any code pattern
-            if (!title || title === fullSubject) {
-                // Try to extract just the subject name by removing any leading code-like pattern
-                title = fullSubject.replace(/^[A-Za-z0-9\-]+ - /, '').trim();
-            }
             return title;
         }
 
@@ -2660,6 +2678,56 @@
                     });
                 }
             );
+        }
+
+        // Clear all database (localStorage and Supabase)
+        async function clearAllDatabase() {
+            // Show custom confirmation modal
+            document.getElementById('clearDbModal').style.display = 'flex';
+        }
+
+        function confirmClearDatabase() {
+            // Close modal
+            document.getElementById('clearDbModal').style.display = 'none';
+
+            // Show loading indicator
+            showToast({
+                type: 'info',
+                title: 'Clearing...',
+                message: 'Deleting all data'
+            });
+
+            (async () => {
+                try {
+                    // Clear Supabase data if using Supabase
+                    if (USE_SUPABASE) {
+                        await supabaseClient.clearAllData();
+                    }
+
+                    // Clear localStorage
+                    localStorage.clear();
+
+                    // Reload the page
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+
+                    showToast({
+                        type: 'success',
+                        title: 'Cleared!',
+                        message: 'All data has been deleted'
+                    });
+                } catch (error) {
+                    console.error('Error clearing database:', error);
+                    // Still clear localStorage even if Supabase fails
+                    localStorage.clear();
+                    location.reload();
+                }
+            })();
+        }
+
+        function cancelClearDatabase() {
+            document.getElementById('clearDbModal').style.display = 'none';
         }
 
         // Copy notice link for sharing
@@ -2921,7 +2989,7 @@
                                             <span style="opacity: 0.7; font-size: 0.9rem; color: #64748B;"><i class="far fa-calendar-alt" style="margin-right: 5px;"></i>${test.date} at ${test.time.split(' - ')[0]}</span>
                                         </div>
                                     </div>
-                                    <span style="background: ${isUrgent ? '#EF4444' : '#D97706'}; color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">${daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : daysUntil + ' days'}</span>
+                                    <span style="background: ${isUrgent ? '#EF4444' : '#D97706'}; color: white; padding: 6px 12px; border-radius: 16px; font-size: 0.75rem; font-weight: 600;">${daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : daysUntil + ' days'}</span>
                                 </div>
                             </div>
                                 `;
@@ -3380,7 +3448,7 @@
                     </div>
                     <div style="display: flex; gap: 12px;">
                         <button onclick="document.getElementById('authModal').style.display='none'" style="flex: 1; padding: 14px; border: 1px solid #E2E8F0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;">Cancel</button>
-                        <button onclick="const p=document.getElementById('crPassword').value; if(p==='admin123'){currentUser.role='cr';localStorage.setItem('crMode', 'true');document.getElementById('authModal').style.display='none';document.getElementById('passwordError').style.display='none';renderMembers();}else{document.getElementById('passwordError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">Verify</button>
+                        <button onclick="const p=document.getElementById('crPassword').value; if(p===getCRPassword()){currentUser.role='cr';localStorage.setItem('crMode', 'true');document.getElementById('authModal').style.display='none';document.getElementById('passwordError').style.display='none';renderMembers();}else{document.getElementById('passwordError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">Verify</button>
                     </div>
                 </div>
             </div>
@@ -3390,52 +3458,60 @@
             <div style="margin-top: 32px;">
                 <h3 style="margin-bottom: 20px; font-size: 1.2rem;">CR Controls</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
-                    <div onclick="openModal('note')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
-                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #10B981, #34D399); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                    <div onclick="openModal('note')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s; text-align: center;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
+                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #10B981, #34D399); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
                             <i class="fas fa-plus" style="color: white; font-size: 1.2rem;"></i>
                         </div>
                         <h4 style="margin-bottom: 4px;">Add Study Notes</h4>
                         <span class="text-secondary" style="font-size: 0.9rem;">Upload new study materials</span>
                     </div>
                     
-                    <div onclick="openModal('notice')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
-                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #F59E0B, #FBBF24); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                    <div onclick="openModal('notice')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s; text-align: center;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
+                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #F59E0B, #FBBF24); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
                             <i class="fas fa-bullhorn" style="color: white; font-size: 1.2rem;"></i>
                         </div>
                         <h4 style="margin-bottom: 4px;">Post Notice</h4>
                         <span class="text-secondary" style="font-size: 0.9rem;">Create class announcements</span>
                     </div>
                     
-                    <div onclick="openModal('term')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
-                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #8B5CF6, #A78BFA); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                    <div onclick="openModal('term')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s; text-align: center;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
+                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #8B5CF6, #A78BFA); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
                             <i class="fas fa-graduation-cap" style="color: white; font-size: 1.2rem;"></i>
                         </div>
                         <h4 style="margin-bottom: 4px;">Promote to Next Term</h4>
                         <span class="text-secondary" style="font-size: 0.9rem;">Move to Level 4 Term 1</span>
                     </div>
                     
-                    <div onclick="openModal('subject')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
-                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #06B6D4, #22D3EE); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                    <div onclick="openModal('subject')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s; text-align: center;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
+                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #06B6D4, #22D3EE); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
                             <i class="fas fa-book-medical" style="color: white; font-size: 1.2rem;"></i>
                         </div>
                         <h4 style="margin-bottom: 4px;">Add New Subjects</h4>
                         <span class="text-secondary" style="font-size: 0.9rem;">Create new subject cards</span>
                     </div>
                     
-                    <div onclick="openModal('routine')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
-                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #F97316, #FB923C); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                    <div onclick="openModal('routine')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s; text-align: center;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
+                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #F97316, #FB923C); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
                             <i class="fas fa-calendar-plus" style="color: white; font-size: 1.2rem;"></i>
                         </div>
                         <h4 style="margin-bottom: 4px;">Post Today's Routine</h4>
                         <span class="text-secondary" style="font-size: 0.9rem;">Update class schedule</span>
                     </div>
                     
-                    <div onclick="openModal('ct')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
-                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #EF4444, #F87171); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                    <div onclick="openModal('ct')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s; text-align: center;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
+                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #EF4444, #F87171); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
                             <i class="fas fa-file-alt" style="color: white; font-size: 1.2rem;"></i>
                         </div>
                         <h4 style="margin-bottom: 4px;">New Class Test Schedule</h4>
                         <span class="text-secondary" style="font-size: 0.9rem;">Add CT schedule</span>
+                    </div>
+                    
+                    <div onclick="clearAllDatabase()" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #FEE2E2; cursor: pointer; transition: all 0.2s; text-align: center;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
+                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #DC2626, #EF4444); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                            <i class="fas fa-trash-alt" style="color: white; font-size: 1.2rem;"></i>
+                        </div>
+                        <h4 style="margin-bottom: 4px; color: #DC2626;">Clear Database</h4>
+                        <span class="text-secondary" style="font-size: 0.9rem;">Erase all data</span>
                     </div>
                 </div>
             </div>
@@ -3842,8 +3918,11 @@
         }
 
         function renderCRMode() {
-            // Check if user is authenticated as CR
-            if (currentUser.role !== 'cr') {
+            // Check if user is super admin - they can access CR settings directly
+            const isSuperAdmin = currentUser.role === 'super_admin';
+
+            // Check if user is authenticated as CR (or is super admin)
+            if (currentUser.role !== 'cr' && !isSuperAdmin) {
                 document.getElementById('mainContent').innerHTML = `
                 <div style="margin-bottom: 32px;">
                     <h1 class="satoshi" style="font-size: 2rem; margin-bottom: 8px;">CR Mode</h1>
@@ -3862,13 +3941,18 @@
                     </div>
                     <div style="display: flex; gap: 12px;">
                         <button onclick="document.getElementById('crPasswordInput').value='';currentPage='dashboard';renderDashboard();" style="flex: 1; padding: 14px; border: 1px solid #E2E8F0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;">Cancel</button>
-                        <button onclick="const p=document.getElementById('crPasswordInput').value; if(p==='admin123'){currentUser.role='cr';localStorage.setItem('crMode', 'true');document.getElementById('crAuthError').style.display='none';renderCRMode();showToast({type:'success',title:'Welcome!',message:'CR mode enabled'});}else{document.getElementById('crAuthError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">
+                        <button onclick="const p=document.getElementById('crPasswordInput').value; if(p===getCRPassword()){currentUser.role='cr';localStorage.setItem('crMode', 'true');document.getElementById('crAuthError').style.display='none';renderCRMode();showToast({type:'success',title:'Welcome!',message:'CR mode enabled'});}else{document.getElementById('crAuthError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">
                             <i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i>Login
                         </button>
                     </div>
                 </div>
                 `;
                 return;
+            }
+
+            // If super admin but not in CR mode, set them to CR mode
+            if (isSuperAdmin && currentUser.role !== 'cr') {
+                currentUser.role = 'cr';
             }
 
             const iconOptions = [
@@ -3942,12 +4026,88 @@
                     <span class="satoshi" style="font-size: 1.5rem; font-weight: 700; color: white;">${websiteSettings.websiteName}</span>
                 </div>
             </div>
+            
+            ${currentUser.role === 'super_admin' ? `
+            <!-- Change CR Password Card - Super Admin Only -->
+            <div style="background: white; border-radius: 28px; padding: 32px; border: 1px solid #F1F5F9;">
+                <h3 style="font-size: 1.3rem; margin-bottom: 20px; color: #1E293B;"><i class="fas fa-key" style="margin-right: 10px; color: #6366F1;"></i>Change CR Password</h3>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #374151;">Current CR Password</label>
+                    <input type="password" id="currentCRPassword" placeholder="Enter current CR password"
+                        style="width: 100%; padding: 14px 18px; border: 2px solid #E2E8F0; border-radius: 14px; font-size: 1rem; transition: all 0.2s; box-sizing: border-box;">
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #374151;">New CR Password</label>
+                    <input type="password" id="newCRPassword" placeholder="Enter new CR password (min 4 characters)"
+                        style="width: 100%; padding: 14px 18px; border: 2px solid #E2E8F0; border-radius: 14px; font-size: 1rem; transition: all 0.2s; box-sizing: border-box;">
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #374151;">Confirm New CR Password</label>
+                    <input type="password" id="confirmCRPassword" placeholder="Confirm new CR password"
+                        style="width: 100%; padding: 14px 18px; border: 2px solid #E2E8F0; border-radius: 14px; font-size: 1rem; transition: all 0.2s; box-sizing: border-box;">
+                </div>
+
+                <div id="crPasswordChangeError" style="display: none; background: #FEF2F2; border: 1px solid #EF4444; color: #DC2626; padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; font-size: 0.9rem; text-align: center;"></div>
+                <div id="crPasswordChangeSuccess" style="display: none; background: #F0FDF4; border: 1px solid #22C55E; color: #16A34A; padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; font-size: 0.9rem; text-align: center;">Password changed successfully!</div>
+
+                <button onclick="changeCRPassword()" 
+                    style="padding: 14px 32px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-lock" style="margin-right: 8px;"></i>Change Password
+                </button>
+            </div>
+            ` : ''}
             `;
         }
 
         function selectLogoIcon(icon) {
             websiteSettings.logoIcon = icon;
             renderCRMode();
+        }
+
+        // CR Password Management
+        function getCRPassword() {
+            return localStorage.getItem('crPassword') || 'admin123';
+        }
+
+        function setCRPassword(newPassword) {
+            localStorage.setItem('crPassword', newPassword);
+            showToast({ type: 'success', title: 'Password Updated', message: 'CR password has been changed' });
+        }
+
+        function changeCRPassword() {
+            const currentPassword = document.getElementById('currentCRPassword').value;
+            const newPassword = document.getElementById('newCRPassword').value;
+            const confirmPassword = document.getElementById('confirmCRPassword').value;
+            const errorDiv = document.getElementById('crPasswordChangeError');
+
+            if (currentPassword !== getCRPassword()) {
+                errorDiv.textContent = 'Current CR password is incorrect';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (!newPassword || newPassword.length < 4) {
+                errorDiv.textContent = 'New password must be at least 4 characters';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                errorDiv.textContent = 'New passwords do not match';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            setCRPassword(newPassword);
+            document.getElementById('currentCRPassword').value = '';
+            document.getElementById('newCRPassword').value = '';
+            document.getElementById('confirmCRPassword').value = '';
+            errorDiv.style.display = 'none';
+            document.getElementById('crPasswordChangeSuccess').style.display = 'block';
+            setTimeout(() => document.getElementById('crPasswordChangeSuccess').style.display = 'none', 3000);
         }
 
         function saveWebsiteSettings() {
@@ -4734,8 +4894,19 @@
             }
         });
 
-        // Initialize
+        // Initialize with mandatory authentication
         initializeData().then(() => {
+            // Check if user is logged in
+            const savedUser = localStorage.getItem('currentUser');
+            if (!savedUser) {
+                // No user logged in - show auth modal and don't render dashboard
+                document.getElementById('authModal').style.display = 'flex';
+                // Hide the main app content until logged in
+                document.body.style.overflow = 'hidden';
+                return;
+            }
+
+            // User is logged in - render dashboard
             renderDashboard();
 
             // Check unread notices and update badge
@@ -4820,7 +4991,8 @@
                 </p>
             </div>
 
-            <button onclick="document.getElementById('authModal').style.display='none'"
+            <button
+                onclick="if(localStorage.getItem('currentUser')) { document.getElementById('authModal').style.display='none'; document.body.style.overflow = 'auto'; }"
                 style="position: absolute; top: 16px; right: 16px; background: #F1F5F9; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1rem; color: #64748B;">✕</button>
         </div>
     </div>
@@ -4910,15 +5082,20 @@
             try {
                 const users = await supabaseClient.getUserByStudentId(studentId);
                 if (users && users.length > 0 && users[0].password_hash === password) {
+                    // Hardcoded super admin student ID
+                    const SUPER_ADMIN_ID = '1610483189';
+                    const isSuperAdmin = studentId === SUPER_ADMIN_ID;
+
                     currentUser = {
                         id: users[0].id,
                         name: users[0].full_name,
                         studentId: users[0].student_id,
-                        role: 'student',
+                        role: isSuperAdmin ? 'super_admin' : 'student',
                         avatar: users[0].full_name.charAt(0).toUpperCase()
                     };
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                     document.getElementById('authModal').style.display = 'none';
+                    document.body.style.overflow = 'auto';
                     showToast({ type: 'success', title: 'Welcome back!', message: 'Logged in successfully' });
                     location.reload();
                 } else {
@@ -4963,15 +5140,20 @@
                     password_hash: password
                 });
 
+                // Hardcoded super admin student ID
+                const SUPER_ADMIN_ID = '1610483189';
+                const isSuperAdmin = studentId === SUPER_ADMIN_ID;
+
                 currentUser = {
                     id: newUser.id,
                     name: fullName,
                     studentId: studentId,
-                    role: 'student',
+                    role: isSuperAdmin ? 'super_admin' : 'student',
                     avatar: fullName.charAt(0).toUpperCase()
                 };
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 document.getElementById('authModal').style.display = 'none';
+                document.body.style.overflow = 'auto';
                 showToast({ type: 'success', title: 'Welcome!', message: 'Account created successfully' });
                 location.reload();
             } catch (e) {
@@ -5039,6 +5221,39 @@
             setTimeout(() => location.reload(), 1000);
         }
     </script>
+
+    <!-- Clear Database Confirmation Modal -->
+    <div id="clearDbModal"
+        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+        <div
+            style="background: white; border-radius: 24px; max-width: 420px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); overflow: hidden; animation: slideUp 0.3s ease;">
+            <div style="background: linear-gradient(135deg, #EF4444, #F87171); padding: 28px 32px; text-align: center;">
+                <div
+                    style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                    <i class="fas fa-exclamation-triangle" style="color: white; font-size: 1.8rem;"></i>
+                </div>
+                <h3 style="margin-bottom: 8px; color: white; font-size: 1.4rem;">Clear Database?</h3>
+                <p style="color: rgba(255,255,255,0.9); font-size: 0.9rem; margin: 0;">This action cannot be undone</p>
+            </div>
+            <div style="padding: 28px 32px;">
+                <div
+                    style="background: #FEF2F2; border: 1px solid #FEE2E2; border-radius: 16px; padding: 16px; margin-bottom: 24px;">
+                    <div class="flex" style="gap: 12px; align-items: flex-start;">
+                        <i class="fas fa-info-circle" style="color: #EF4444; margin-top: 2px;"></i>
+                        <span style="color: #991B1B; font-size: 0.9rem; line-height: 1.5;">This will permanently delete
+                            all notices, notes, routines, CT schedules, members, and settings.</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="cancelClearDatabase()"
+                        style="flex: 1; padding: 14px; background: white; border: 2px solid #E2E8F0; border-radius: 14px; cursor: pointer; font-weight: 600; color: #64748B; font-size: 0.95rem; transition: all 0.2s;">Cancel</button>
+                    <button onclick="confirmClearDatabase()"
+                        style="flex: 1; padding: 14px; background: linear-gradient(135deg, #EF4444, #F87171); border: none; border-radius: 14px; cursor: pointer; font-weight: 600; color: white; font-size: 0.95rem; transition: all 0.2s; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);">Delete
+                        Everything</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
