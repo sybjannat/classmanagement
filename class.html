@@ -5485,6 +5485,7 @@
             }
 
             try {
+                // Try Supabase first
                 const users = await supabaseClient.getUserByStudentId(studentId);
                 if (users && users.length > 0 && users[0].password_hash === password) {
                     currentUser = {
@@ -5499,12 +5500,31 @@
                     document.body.style.overflow = 'auto';
                     showToast({ type: 'success', title: 'Welcome back!', message: 'Logged in successfully' });
                     location.reload();
-                } else {
-                    errorDiv.textContent = 'Invalid Student ID or Password';
-                    errorDiv.style.display = 'block';
+                    return;
                 }
             } catch (e) {
-                errorDiv.textContent = 'Login failed. Please try again.';
+                console.log('Supabase login error, trying local fallback:', e);
+            }
+
+            // Fallback to local storage authentication
+            const savedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+            const localUser = savedUsers.find(u => u.student_id === studentId && u.password_hash === password);
+
+            if (localUser) {
+                currentUser = {
+                    id: localUser.id,
+                    name: localUser.full_name,
+                    studentId: localUser.student_id,
+                    role: 'student',
+                    avatar: localUser.full_name.charAt(0).toUpperCase()
+                };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                document.getElementById('authModal').style.display = 'none';
+                document.body.style.overflow = 'auto';
+                showToast({ type: 'success', title: 'Welcome back!', message: 'Logged in successfully' });
+                location.reload();
+            } else {
+                errorDiv.textContent = 'Invalid Student ID or Password';
                 errorDiv.style.display = 'block';
             }
         }
@@ -5528,6 +5548,7 @@
             }
 
             try {
+                // Try Supabase first
                 const existing = await supabaseClient.getUserByStudentId(studentId);
                 if (existing && existing.length > 0) {
                     errorDiv.textContent = 'Student ID already registered';
@@ -5554,8 +5575,39 @@
                 showToast({ type: 'success', title: 'Welcome!', message: 'Account created successfully' });
                 location.reload();
             } catch (e) {
-                errorDiv.textContent = 'Signup failed. Please try again.';
-                errorDiv.style.display = 'block';
+                console.log('Supabase signup error, using local fallback:', e);
+
+                // Fallback to local storage
+                const savedUsers = JSON.parse(localStorage.getItem('users') || '[]');
+                const userExists = savedUsers.some(u => u.student_id === studentId);
+
+                if (userExists) {
+                    errorDiv.textContent = 'Student ID already registered';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                const newLocalUser = {
+                    id: 'local_' + Date.now(),
+                    student_id: studentId,
+                    full_name: fullName,
+                    password_hash: password
+                };
+                savedUsers.push(newLocalUser);
+                localStorage.setItem('users', JSON.stringify(savedUsers));
+
+                currentUser = {
+                    id: newLocalUser.id,
+                    name: fullName,
+                    studentId: studentId,
+                    role: 'student',
+                    avatar: fullName.charAt(0).toUpperCase()
+                };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                document.getElementById('authModal').style.display = 'none';
+                document.body.style.overflow = 'auto';
+                showToast({ type: 'success', title: 'Welcome!', message: 'Account created successfully' });
+                location.reload();
             }
         }
 
