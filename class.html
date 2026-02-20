@@ -2267,6 +2267,8 @@
         requestNotificationPermission();
 
         // Function to send push notification with vibration and sound for live updates
+        let audioContextInstance = null;
+
         function sendPushNotification(title, body, icon = null) {
             // 1. Browser Push Notification
             if ('Notification' in window && Notification.permission === 'granted') {
@@ -2289,9 +2291,13 @@
                 }
             }
 
-            // 2. Device Vibration (strong vibration pattern)
+            // 2. Device Vibration (strong vibration pattern) - wrapped in try/catch
             if ('vibrate' in navigator) {
-                navigator.vibrate([500, 200, 500, 200, 500, 200, 500]); // Strong triple vibration
+                try {
+                    navigator.vibrate([500, 200, 500, 200, 500, 200, 500]);
+                } catch (e) {
+                    console.log('Vibration error:', e);
+                }
             }
 
             // 3. Play notification sound
@@ -2301,8 +2307,17 @@
         // Function to play notification sound
         function playNotificationSound() {
             try {
-                // Create audio context for playing sound
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                // Create or reuse audio context
+                if (!audioContextInstance) {
+                    audioContextInstance = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                const audioContext = audioContextInstance;
+
+                // Resume if suspended (required after page load without user gesture)
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().catch(e => console.log('Audio resume error:', e));
+                }
 
                 // Create a strong beep sound
                 const oscillator = audioContext.createOscillator();
@@ -2316,7 +2331,7 @@
                 oscillator.type = 'square';
 
                 // Volume envelope - start loud and fade
-                gainNode.gain.setValueAtTime(0.8, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
 
                 // Play sound
@@ -2325,19 +2340,38 @@
 
                 // Play a second beep for more emphasis
                 setTimeout(() => {
+                    if (audioContext.state === 'suspended') return;
                     const osc2 = audioContext.createOscillator();
                     const gain2 = audioContext.createGain();
                     osc2.connect(gain2);
                     gain2.connect(audioContext.destination);
                     osc2.frequency.value = 1100;
                     osc2.type = 'square';
-                    gain2.gain.setValueAtTime(0.8, audioContext.currentTime);
+                    gain2.gain.setValueAtTime(0.5, audioContext.currentTime);
                     gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
                     osc2.start(audioContext.currentTime);
                     osc2.stop(audioContext.currentTime + 0.5);
                 }, 200);
             } catch (e) {
                 console.log('Audio play error:', e);
+            }
+        }
+
+        // Initialize audio context on first user interaction (call this on login)
+        function initAudioOnInteraction() {
+            try {
+                if (!audioContextInstance) {
+                    audioContextInstance = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioContextInstance.state === 'suspended') {
+                    audioContextInstance.resume();
+                }
+                // Test vibration
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(50);
+                }
+            } catch (e) {
+                console.log('Audio init error:', e);
             }
         }
 
@@ -5049,6 +5083,12 @@
                 console.log('Gone offline - stopping polling');
                 stopPolling();
             });
+
+            // Initialize audio on first user click anywhere
+            document.addEventListener('click', function initOnce() {
+                initAudioOnInteraction();
+                document.removeEventListener('click', initOnce);
+            }, { once: true });
 
             const bell = document.querySelector('.notification-bell');
             if (bell) {
