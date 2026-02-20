@@ -5325,7 +5325,16 @@
         function checkAuthAndInitialize() {
             console.log('Starting auth check...');
 
-            // Check if user is logged in - check both localStorage and global currentUser
+            // FIRST: Immediately set default state to prevent any flash of wrong content
+            // This ensures login page shows first, then we'll check if user is logged in
+            var authPage = document.getElementById('authPage');
+            var appContainer = document.getElementById('app');
+
+            // Default: show login, hide app (prevents flash in new devices/browsers)
+            if (authPage) authPage.style.display = 'flex';
+            if (appContainer) appContainer.style.display = 'none';
+
+            // Then check if user is logged in
             var isLoggedIn = false;
 
             // First check global currentUser variable (loaded at page startup)
@@ -5354,13 +5363,11 @@
             if (isLoggedIn) {
                 console.log('User is logged in, showing dashboard...');
 
-                // User is logged in - show dashboard directly without flash
-                var authPage = document.getElementById('authPage');
+                // User is logged in - show dashboard
                 if (authPage) {
                     authPage.style.display = 'none';
                 }
 
-                var appContainer = document.getElementById('app');
                 if (appContainer) {
                     appContainer.style.display = 'flex';
                     console.log('App container display set to flex');
@@ -5424,17 +5431,7 @@
                     });
             } else {
                 console.log('User is NOT logged in, showing login page');
-                // User is NOT logged in - show login page
-                var authPage = document.getElementById('authPage');
-                if (authPage) {
-                    authPage.style.display = 'flex';
-                }
-
-                // Hide app container
-                var appContainer = document.getElementById('app');
-                if (appContainer) {
-                    appContainer.style.display = 'none';
-                }
+                // User is NOT logged in - login page already shown (set above)
             }
         }
 
