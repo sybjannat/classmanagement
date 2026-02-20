@@ -32,10 +32,15 @@
             overflow-x: hidden;
         }
 
+        /* App container - hidden by default until auth check */
         #app {
             display: flex;
             min-height: 100vh;
             overflow-x: hidden;
+        }
+
+        #app.auth-required {
+            display: none !important;
         }
 
         /* custom scroll - hidden */
@@ -1812,7 +1817,7 @@
                         <i class="far fa-bell"></i>
                         <span class="notification-badge" id="unreadBadge" style="display: none;">0</span>
                     </div>
-                    <button onclick="document.getElementById('authModal').style.display='flex'"
+                    <button onclick="document.getElementById('crAuthModal').style.display='flex'"
                         style="background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 8px 16px; border-radius: 20px; color: white; cursor: pointer; font-weight: 600; margin-right: 12px; display: flex; align-items: center; gap: 8px;">
                         <i class="fas fa-sign-in-alt"></i> Login
                     </button>
@@ -3891,7 +3896,7 @@
                             <span class="text-secondary" style="font-size: 0.9rem;">${isCR ? 'Currently active' : 'Enable to manage class'}</span>
                         </div>
                     </div>
-                    <div onclick="if(!${isCR}) { document.getElementById('authModal').style.display='flex'; } else { currentUser.role='student'; localStorage.setItem('crMode', 'false'); renderMembers(); }" style="width: 60px; height: 32px; background: ${isCR ? 'linear-gradient(135deg, #6366F1, #8B5CF6)' : '#E2E8F0'}; border-radius: 20px; position: relative; cursor: pointer; transition: all 0.3s;">
+                    <div onclick="if(!${isCR}) { document.getElementById('crAuthModal').style.display='flex'; } else { currentUser.role='student'; localStorage.setItem('crMode', 'false'); renderMembers(); }" style="width: 60px; height: 32px; background: ${isCR ? 'linear-gradient(135deg, #6366F1, #8B5CF6)' : '#E2E8F0'}; border-radius: 20px; position: relative; cursor: pointer; transition: all 0.3s;">
                         <div style="width: 26px; height: 26px; background: white; border-radius: 50%; position: absolute; top: 3px; ${isCR ? 'right: 3px' : 'left: 3px'}; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
                     </div>
                 </div>
@@ -3921,8 +3926,8 @@
             </div>
             ` : ''}
             
-            <!-- Auth Modal -->
-            <div id="authModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+            <!-- CR Auth Modal -->
+            <div id="crAuthModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
                 <div style="background: white; padding: 40px; border-radius: 24px; max-width: 400px; width: 90%;">
                     <h3 style="margin-bottom: 8px; text-align: center;">Enter CR Password</h3>
                     <p class="text-secondary" style="text-align: center; margin-bottom: 24px;">Authentication required to enable CR mode</p>
@@ -3931,8 +3936,8 @@
                         <span style="font-weight: 600;">⚠️ Incorrect Password</span>
                     </div>
                     <div style="display: flex; gap: 12px;">
-                        <button onclick="document.getElementById('authModal').style.display='none'" style="flex: 1; padding: 14px; border: 1px solid #E2E8F0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;">Cancel</button>
-                        <button onclick="const p=document.getElementById('crPassword').value; if(p==='admin123'){currentUser.role='cr';localStorage.setItem('crMode', 'true');document.getElementById('authModal').style.display='none';document.getElementById('passwordError').style.display='none';renderMembers();}else{document.getElementById('passwordError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">Verify</button>
+                        <button onclick="document.getElementById('crAuthModal').style.display='none'" style="flex: 1; padding: 14px; border: 1px solid #E2E8F0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;">Cancel</button>
+                        <button onclick="const p=document.getElementById('crPassword').value; if(p==='admin123'){currentUser.role='cr';localStorage.setItem('crMode', 'true');document.getElementById('crAuthModal').style.display='none';document.getElementById('passwordError').style.display='none';renderMembers();}else{document.getElementById('passwordError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">Verify</button>
                     </div>
                 </div>
             </div>
@@ -5295,10 +5300,10 @@
                 document.getElementById('authModal').style.display = 'flex';
                 document.body.style.overflow = 'hidden';
 
-                // Also hide the app container to prevent any dashboard flash
+                // Add CSS class to hide app container
                 const appContainer = document.getElementById('app');
                 if (appContainer) {
-                    appContainer.style.display = 'none';
+                    appContainer.classList.add('auth-required');
                 }
 
                 // Don't load data until logged in
@@ -5520,7 +5525,7 @@
                     // Show the app container
                     const appContainer = document.getElementById('app');
                     if (appContainer) {
-                        appContainer.style.display = 'flex';
+                        appContainer.classList.remove('auth-required');
                     }
 
                     // Load data and render dashboard
@@ -5678,7 +5683,7 @@
             // Hide app container and show login
             const appContainer = document.getElementById('app');
             if (appContainer) {
-                appContainer.style.display = 'none';
+                appContainer.classList.add('auth-required');
             }
             document.getElementById('authModal').style.display = 'flex';
             document.body.style.overflow = 'hidden';
