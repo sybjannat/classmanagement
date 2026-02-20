@@ -5321,20 +5321,8 @@
             }
         });
 
-        // Initialize - ALWAYS show login first, then load data after authentication
+        // Initialize - check auth status FIRST to avoid flash
         function checkAuthAndInitialize() {
-            // ALWAYS show the login page first
-            var authPage = document.getElementById('authPage');
-            if (authPage) {
-                authPage.style.display = 'flex';
-            }
-
-            // Hide app container initially
-            var appContainer = document.getElementById('app');
-            if (appContainer) {
-                appContainer.style.display = 'none';
-            }
-
             // Check if user is logged in - check both localStorage and global currentUser
             var isLoggedIn = false;
 
@@ -5360,7 +5348,18 @@
             }
 
             if (isLoggedIn) {
-                // User is logged in - load data and then show dashboard
+                // User is logged in - show dashboard directly without flash
+                var authPage = document.getElementById('authPage');
+                if (authPage) {
+                    authPage.style.display = 'none';
+                }
+
+                var appContainer = document.getElementById('app');
+                if (appContainer) {
+                    appContainer.style.display = 'flex';
+                }
+
+                // Load data and render dashboard
                 initializeData().then(function () {
                     // Initialize data hashes for polling
                     lastDataHash.notices = getDataHash(notices);
@@ -5370,21 +5369,6 @@
 
                     // Start polling for real-time updates
                     startPolling();
-
-                    // Hide login page and show the app container
-                    var authPage = document.getElementById('authPage');
-                    if (authPage) {
-                        authPage.style.display = 'none';
-                    }
-
-                    var appContainer = document.getElementById('app');
-                    if (appContainer) {
-                        appContainer.style.display = 'flex';
-                        // Force browser repaint with small delay
-                        setTimeout(function () {
-                            appContainer.style.display = 'flex';
-                        }, 50);
-                    }
 
                     // Update header to show user avatar
                     updateHeaderAuth();
@@ -5407,6 +5391,18 @@
                         if (dot) dot.style.display = 'none';
                     }
                 });
+            } else {
+                // User is NOT logged in - show login page
+                var authPage = document.getElementById('authPage');
+                if (authPage) {
+                    authPage.style.display = 'flex';
+                }
+
+                // Hide app container
+                var appContainer = document.getElementById('app');
+                if (appContainer) {
+                    appContainer.style.display = 'none';
+                }
             }
         }
 
