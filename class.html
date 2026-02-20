@@ -2318,39 +2318,39 @@
                     audioContext.resume().catch(e => console.log('Audio resume error:', e));
                 }
 
-                // Create a strong beep sound
+                // Create a soft notification sound
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
 
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
 
-                // Set sound parameters for a strong alert tone
-                oscillator.frequency.value = 880; // A5 note - loud and attention-grabbing
-                oscillator.type = 'square';
+                // Set sound parameters for a soft, gentle tone
+                oscillator.frequency.value = 440; // A4 note - softer, pleasant tone
+                oscillator.type = 'sine'; // sine wave is much softer than square
 
-                // Volume envelope - start loud and fade
-                gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                // Volume envelope - soft start and fade
+                gainNode.gain.setValueAtTime(0.15, audioContext.currentTime); // Lower volume (0.15 instead of 0.5)
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
 
                 // Play sound
                 oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.5);
+                oscillator.stop(audioContext.currentTime + 0.4);
 
-                // Play a second beep for more emphasis
+                // Play a second softer beep
                 setTimeout(() => {
                     if (audioContext.state === 'suspended') return;
                     const osc2 = audioContext.createOscillator();
                     const gain2 = audioContext.createGain();
                     osc2.connect(gain2);
                     gain2.connect(audioContext.destination);
-                    osc2.frequency.value = 1100;
-                    osc2.type = 'square';
-                    gain2.gain.setValueAtTime(0.5, audioContext.currentTime);
-                    gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    osc2.frequency.value = 520; // Slightly higher but still soft
+                    osc2.type = 'sine';
+                    gain2.gain.setValueAtTime(0.15, audioContext.currentTime);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
                     osc2.start(audioContext.currentTime);
-                    osc2.stop(audioContext.currentTime + 0.5);
-                }, 200);
+                    osc2.stop(audioContext.currentTime + 0.4);
+                }, 150);
             } catch (e) {
                 console.log('Audio play error:', e);
             }
@@ -2439,7 +2439,79 @@
 
         let currentTerm = 'Level 3 Term 2';
         let archivedTerms = [];
+        let previousTermSubjects = []; // Store previous term subjects for reference
         let unreadNotices = true;
+
+        // Load current term and archived terms from localStorage
+        function loadTermData() {
+            const savedTerm = localStorage.getItem('currentTerm');
+            const savedArchived = localStorage.getItem('archivedTerms');
+            const savedPrevSubjects = localStorage.getItem('previousTermSubjects');
+
+            if (savedTerm) currentTerm = savedTerm;
+            if (savedArchived) archivedTerms = JSON.parse(savedArchived);
+            if (savedPrevSubjects) previousTermSubjects = JSON.parse(savedPrevSubjects);
+        }
+
+        // Save term data to localStorage
+        function saveTermData() {
+            localStorage.setItem('currentTerm', currentTerm);
+            localStorage.setItem('archivedTerms', JSON.stringify(archivedTerms));
+            localStorage.setItem('previousTermSubjects', JSON.stringify(previousTermSubjects));
+        }
+
+        // Promote to next term function
+        function promoteToNextTerm() {
+            // Store current subjects as previous term subjects before clearing
+            previousTermSubjects = [...subjects];
+
+            // Determine next term
+            let nextTerm = currentTerm;
+            if (currentTerm.includes('Term 1')) {
+                nextTerm = currentTerm.replace('Term 1', 'Term 2');
+            } else if (currentTerm.includes('Term 2')) {
+                const levelMatch = currentTerm.match(/Level (\d+)/);
+                if (levelMatch) {
+                    const nextLevel = parseInt(levelMatch[1]) + 1;
+                    nextTerm = currentTerm.replace(/Level \d+/, 'Level ' + nextLevel).replace('Term 2', 'Term 1');
+                }
+            }
+
+            // Archive current term
+            archivedTerms.push(currentTerm);
+
+            // Clear subjects for new term
+            subjects = [];
+
+            // Update current term
+            currentTerm = nextTerm;
+
+            // Save to localStorage
+            saveTermData();
+
+            // Save to Supabase if available
+            if (USE_SUPABASE) {
+                saveSubjects();
+                // Save term data to a separate table or as website settings
+                try {
+                    supabaseClient.request('term_data', {
+                        method: 'POST',
+                        body: {
+                            current_term: currentTerm,
+                            archived_terms: JSON.stringify(archivedTerms),
+                            previous_subjects: JSON.stringify(previousTermSubjects)
+                        }
+                    }).catch(e => console.log('Could not save term data to Supabase:', e));
+                } catch (e) { }
+            }
+
+            // Close modal and refresh
+            document.getElementById('termModal').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
+
+            showToast({ type: 'success', title: 'Promoted!', message: 'Now in ' + currentTerm });
+            renderMembers();
+        }
 
         // ---------- DATA MANAGEMENT WITH SUPABASE ----------
         // Check if Supabase is configured
@@ -2517,6 +2589,9 @@
             classTests = JSON.parse(localStorage.getItem('classTests')) || [];
             websiteSettings = JSON.parse(localStorage.getItem('websiteSettings')) || { logoIcon: 'fa-scroll', websiteName: 'YE-48' };
             members = ['Aarav Sharma', 'Vivaan Gupta', 'Aditya Kumar', 'Ananya Singh', 'Diya Patel', 'Ishaan Roy', 'Sai Krishna', 'John Mathew', 'Meera Nair', 'Rohan Joshi', 'Priya Shah', 'Karthik Iyer'];
+
+            // Load term data
+            loadTermData();
         }
 
         // Polling function to check for real-time updates from Supabase
@@ -3641,7 +3716,6 @@
                     <div class="flex" style="justify-content: space-between; align-items: center; margin-bottom: 24px;">
                         <div>
                             <h1 class="satoshi" style="font-size: 2rem;">Study Notes</h1>
-                            <span style="background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${currentTerm}</span>
                         </div>
                         ${currentUser.role === 'cr' ? `
                             <button class="gradient-bg" style="padding: 12px 28px; border-radius: 40px; border: none; display: flex; align-items: center; gap: 8px;" id="addNoteBtn">
@@ -3667,7 +3741,6 @@
                 <div class="flex" style="justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <div>
                         <h1 class="satoshi" style="font-size: 2rem;">Study Notes</h1>
-                        <span style="background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${currentTerm}</span>
                     </div>
                     ${currentUser.role === 'cr' ? `
                         <button class="gradient-bg" style="padding: 12px 28px; border-radius: 40px; border: none; display: flex; align-items: center; gap: 8px;" id="addNoteBtn">
@@ -3806,14 +3879,6 @@
                         </div>
                         <h4 style="margin-bottom: 4px;">Post Notice</h4>
                         <span class="text-secondary" style="font-size: 0.9rem;">Create class announcements</span>
-                    </div>
-                    
-                    <div onclick="openModal('term')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s; text-align: center;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
-                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #8B5CF6, #A78BFA); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-                            <i class="fas fa-graduation-cap" style="color: white; font-size: 1.2rem;"></i>
-                        </div>
-                        <h4 style="margin-bottom: 4px;">Promote to Next Term</h4>
-                        <span class="text-secondary" style="font-size: 0.9rem;">Move to Level 4 Term 1</span>
                     </div>
                     
                     <div onclick="openModal('subject')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s; text-align: center;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
@@ -4160,30 +4225,7 @@
                 </div>
             </div>
             
-            <!-- Term Promotion Modal -->
-            <div id="termModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
-                <div style="background: white; padding: 0; border-radius: 24px; max-width: 450px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden;">
-                    <div style="background: linear-gradient(135deg, #8B5CF6, #A78BFA); padding: 24px 32px; text-align: center;">
-                        <h3 style="margin-bottom: 4px; color: white; font-size: 1.4rem;">Promote to Next Term</h3>
-                        <p style="color: rgba(255,255,255,0.9); font-size: 0.9rem;">Move to next level</p>
-                    </div>
-                    <div style="padding: 28px 32px; text-align: center;">
-                        <div style="background: #F5F3FF; padding: 20px; border-radius: 16px; margin-bottom: 20px;">
-                            <p class="text-secondary" style="margin-bottom: 8px; font-size: 0.9rem;">Current Term</p>
-                            <p style="color: #7C3AED; font-weight: 700; font-size: 1.2rem;">Level 3 Term 2</p>
-                        </div>
-                        <div style="background: #ECFDF5; padding: 20px; border-radius: 16px; margin-bottom: 20px;">
-                            <p class="text-secondary" style="margin-bottom: 8px; font-size: 0.9rem;">Next Term</p>
-                            <p style="color: #059669; font-weight: 700; font-size: 1.2rem;">Level 4 Term 1</p>
-                        </div>
-                        <p class="text-secondary" style="text-align: center; margin-bottom: 24px; font-size: 0.9rem;">This will archive all current notes to 'Previous Terms' and reset for the new term.</p>
-                        <div style="display: flex; gap: 12px;">
-                            <button onclick="document.getElementById('termModal').style.display='none'" style="flex: 1; padding: 12px; border: 2px solid #EDE9FE; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;">Cancel</button>
-                            <button onclick="currentTerm='Level 4 Term 1'; archivedTerms.push('Level 3 Term 2'); document.getElementById('termModal').style.display='none'; alert('Successfully promoted to Level 4 Term 1!'); renderMembers();" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #8B5CF6, #A78BFA); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);">Promote Now</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
             ` : ''}
         `;
         }
@@ -4829,9 +4871,7 @@
                             <button type="button" style="flex: 1; padding: 12px; border: 2px solid #EDE9FE; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;" id="closeModal">
                                 Cancel
                             </button>
-                            <button type="button" onclick="currentTerm='Level 4 Term 1'; archivedTerms.push('Level 3 Term 2'); document.getElementById('modalOverlay').style.display='none'; alert('Successfully promoted to Level 4 Term 1!'); renderMembers();" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #8B5CF6, #A78BFA); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);">
-                                Promote Now
-                            </button>
+
                         </div>
                     </div>
                 </div>
