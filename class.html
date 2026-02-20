@@ -1900,11 +1900,21 @@
                         return [];
                     }
 
-                    const data = JSON.parse(text);
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (parseError) {
+                        console.error('JSON parse error:', parseError, 'Response text:', text);
+                        // If response is not JSON, but status is OK, return empty array
+                        if (response.ok) {
+                            return [];
+                        }
+                        throw new Error('Invalid JSON response: ' + text.substring(0, 100));
+                    }
 
                     if (!response.ok) {
                         // Check for Supabase error format
-                        const errorMsg = data.message || (data.error ? data.error : 'Request failed');
+                        const errorMsg = data.message || (data.error ? data.error : 'Request failed with status ' + response.status);
                         throw new Error(errorMsg);
                     }
 
@@ -5538,10 +5548,15 @@
                 return;
             }
 
+            errorDiv.textContent = 'Connecting to server...';
+            errorDiv.style.display = 'block';
+
             try {
                 console.log('Attempting login for student ID:', studentId);
                 const users = await supabaseClient.getUserByStudentId(studentId);
                 console.log('Supabase response:', users);
+
+                errorDiv.style.display = 'none';
 
                 if (!users || !Array.isArray(users) || users.length === 0) {
                     errorDiv.textContent = 'Student ID not found. Please sign up first.';
@@ -5551,7 +5566,7 @@
 
                 const user = users[0];
                 console.log('User data:', user);
-                console.log('Stored password hash:', user.password_hash);
+                console.log('Stored password:', user.password_hash);
                 console.log('Entered password:', password);
 
                 if (user.password_hash !== password) {
@@ -5598,7 +5613,8 @@
 
                 showToast({ type: 'success', title: 'Welcome back!', message: 'Logged in successfully' });
             } catch (e) {
-                errorDiv.textContent = 'Login failed. Please try again. Check your internet connection.';
+                console.error('Login error:', e);
+                errorDiv.textContent = 'Login failed: ' + e.message + '. Please try again.';
                 errorDiv.style.display = 'block';
                 console.error('Login error:', e);
             }
