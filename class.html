@@ -4,6 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Class Management">
+    <meta name="format-detection" content="telephone=no">
     <title>YE-48 — Class Management</title>
     <!-- Fonts & Icons -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900&f[]=inter@400,500,600&display=swap" rel="stylesheet">
@@ -1974,7 +1978,11 @@
     </script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
-        AOS.init({ duration: 600, once: true, easing: 'ease-out' });
+        try {
+            AOS.init({ duration: 600, once: true, easing: 'ease-out' });
+        } catch (e) {
+            console.log('AOS init skipped');
+        }
 
         // ---------- Modern Delete Confirmation ----------
         let deleteConfirmCallback = null;
@@ -5273,44 +5281,54 @@
         });
 
         // Initialize with mandatory authentication
-        initializeData().then(() => {
-            // Initialize data hashes for polling
-            lastDataHash.notices = getDataHash(notices);
-            lastDataHash.notes = getDataHash(notes);
-            lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
-            lastDataHash.classTests = getDataHash(classTests);
+        try {
+            initializeData().then(() => {
+                // Initialize data hashes for polling
+                lastDataHash.notices = getDataHash(notices);
+                lastDataHash.notes = getDataHash(notes);
+                lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
+                lastDataHash.classTests = getDataHash(classTests);
 
-            // Start polling for real-time updates
-            startPolling();
+                // Start polling for real-time updates
+                startPolling();
 
-            // Check if user is logged in
-            const savedUser = localStorage.getItem('currentUser');
-            if (!savedUser) {
-                // No user logged in - show auth modal and don't render dashboard
-                document.getElementById('authModal').style.display = 'flex';
-                // Hide the main app content until logged in
-                document.body.style.overflow = 'hidden';
-                return;
-            }
-
-            // User is logged in - render dashboard
-            renderDashboard();
-
-            // Check unread notices and update badge
-            if (notices.some(n => !isNoticeReadByUser(n.id))) {
-                const badge = document.getElementById('unreadBadge');
-                const dot = document.getElementById('unreadDot');
-                if (badge) {
-                    const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
-                    badge.style.display = 'flex';
-                    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-                    if (dot) dot.style.display = 'block';
+                // Check if user is logged in
+                const savedUser = localStorage.getItem('currentUser');
+                if (!savedUser) {
+                    // No user logged in - show auth modal and don't render dashboard
+                    document.getElementById('authModal').style.display = 'flex';
+                    // Hide the main app content until logged in
+                    document.body.style.overflow = 'hidden';
+                    return;
                 }
-            } else {
-                const dot = document.getElementById('unreadDot');
-                if (dot) dot.style.display = 'none';
-            }
-        });
+
+                // User is logged in - render dashboard
+                try {
+                    renderDashboard();
+                } catch (e) {
+                    console.log('Error rendering dashboard:', e);
+                }
+
+                // Check unread notices and update badge
+                if (notices.some(n => !isNoticeReadByUser(n.id))) {
+                    const badge = document.getElementById('unreadBadge');
+                    const dot = document.getElementById('unreadDot');
+                    if (badge) {
+                        const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
+                        badge.style.display = 'flex';
+                        badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                        if (dot) dot.style.display = 'block';
+                    }
+                } else {
+                    const dot = document.getElementById('unreadDot');
+                    if (dot) dot.style.display = 'none';
+                }
+            }).catch(e => {
+                console.log('Error initializing data:', e);
+            });
+        } catch (e) {
+            console.log('Init error:', e);
+        }
     </script>
 
     <!-- Modern Auth Modal (Login/Signup) -->
