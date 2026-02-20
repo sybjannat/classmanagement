@@ -1583,7 +1583,7 @@
         /* Modal responsive styles */
         @media (max-width: 500px) {
 
-            #authModal>div,
+            #authPage>div,
             #profileModal>div {
                 padding: 24px !important;
                 border-radius: 20px !important;
@@ -1591,18 +1591,18 @@
                 max-width: 95% !important;
             }
 
-            #authModal h2,
+            #authPage h2,
             #profileModal h2 {
                 font-size: 1.3rem !important;
             }
 
-            #authModal input,
+            #authPage input,
             #profileModal input {
                 padding: 12px 14px !important;
                 font-size: 0.9rem !important;
             }
 
-            #authModal button,
+            #authPage button,
             #profileModal button {
                 padding: 12px !important;
                 font-size: 0.9rem !important;
@@ -5292,16 +5292,26 @@
             }
         });
 
-        // Initialize with mandatory authentication - check auth FIRST before loading any data
+        // Initialize - ALWAYS show login first, then load data after authentication
         function checkAuthAndInitialize() {
-            // Check if user is logged in FIRST, before any data loading
-            // Need to verify user has a valid studentId (not just default guest user)
+            // ALWAYS show the login page first
+            var authPage = document.getElementById('authPage');
+            if (authPage) {
+                authPage.style.display = 'flex';
+            }
+
+            // Hide app container initially
+            var appContainer = document.getElementById('app');
+            if (appContainer) {
+                appContainer.style.display = 'none';
+            }
+
+            // Check if user is logged in
             var isLoggedIn = false;
             try {
                 var savedUser = localStorage.getItem('currentUser');
                 if (savedUser) {
                     var user = JSON.parse(savedUser);
-                    // Check if user has valid studentId (not empty)
                     if (user && user.studentId) {
                         isLoggedIn = true;
                     }
@@ -5310,70 +5320,59 @@
                 console.warn('localStorage not available:', e);
             }
 
-            if (!isLoggedIn) {
-                // No user logged in - show auth modal IMMEDIATELY, don't load any data
-                var authModal = document.getElementById('authModal');
-                if (authModal) {
-                    authModal.style.display = 'flex';
-                }
-                document.body.style.overflow = 'hidden';
+            if (isLoggedIn) {
+                // User is logged in - load data and then show dashboard
+                initializeData().then(function () {
+                    // Initialize data hashes for polling
+                    lastDataHash.notices = getDataHash(notices);
+                    lastDataHash.notes = getDataHash(notes);
+                    lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
+                    lastDataHash.classTests = getDataHash(classTests);
 
-                // Hide app container using inline style
-                var appContainer = document.getElementById('app');
-                if (appContainer) {
-                    appContainer.style.display = 'none';
-                }
+                    // Start polling for real-time updates
+                    startPolling();
 
-                // Don't load data until logged in
-                return;
-            }
-
-            // User is logged in - now load data and show dashboard
-            initializeData().then(function () {
-                // Initialize data hashes for polling
-                lastDataHash.notices = getDataHash(notices);
-                lastDataHash.notes = getDataHash(notes);
-                lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
-                lastDataHash.classTests = getDataHash(classTests);
-
-                // Start polling for real-time updates
-                startPolling();
-
-                // Show the app container using inline style
-                var appContainer = document.getElementById('app');
-                if (appContainer) {
-                    appContainer.style.display = 'flex';
-                }
-
-                // User is logged in - render dashboard
-                renderDashboard();
-
-                // Check unread notices and update badge
-                if (notices.some(function (n) { return !isNoticeReadByUser(n.id); })) {
-                    var badge = document.getElementById('unreadBadge');
-                    var dot = document.getElementById('unreadDot');
-                    if (badge) {
-                        var unreadCount = notices.filter(function (n) { return !isNoticeReadByUser(n.id); }).length;
-                        badge.style.display = 'flex';
-                        badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-                        if (dot) dot.style.display = 'block';
+                    // Hide login page and show the app container
+                    var authPage = document.getElementById('authPage');
+                    if (authPage) {
+                        authPage.style.display = 'none';
                     }
-                } else {
-                    var dot = document.getElementById('unreadDot');
-                    if (dot) dot.style.display = 'none';
-                }
-            });
+
+                    var appContainer = document.getElementById('app');
+                    if (appContainer) {
+                        appContainer.style.display = 'flex';
+                    }
+
+                    // User is logged in - render dashboard
+                    renderDashboard();
+
+                    // Check unread notices and update badge
+                    if (notices.some(function (n) { return !isNoticeReadByUser(n.id); })) {
+                        var badge = document.getElementById('unreadBadge');
+                        var dot = document.getElementById('unreadDot');
+                        if (badge) {
+                            var unreadCount = notices.filter(function (n) { return !isNoticeReadByUser(n.id); }).length;
+                            badge.style.display = 'flex';
+                            badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                            if (dot) dot.style.display = 'block';
+                        }
+                    } else {
+                        var dot = document.getElementById('unreadDot');
+                        if (dot) dot.style.display = 'none';
+                    }
+                });
+            }
         }
 
         // Start authentication check immediately
         checkAuthAndInitialize();
     </script>
 
-    <!-- Modern Auth Modal (Login/Signup) -->
-    <div id="authModal"
-        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); z-index: 2000; align-items: center; justify-content: center; animation: fadeIn 0.3s ease;">
+    <!-- Auth Page (Login/Signup) - Full Page View -->
+    <div id="authPage"
+        style="display: none; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); z-index: 2000; align-items: center; justify-content: center; padding: 20px;">
         <div
-            style="background: white; padding: 48px; border-radius: 32px; max-width: 420px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: slideUp 0.4s ease; position: relative;">
+            style="background: white; padding: 48px; border-radius: 32px; max-width: 420px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: slideUp 0.4s ease; position: relative;">
             <div id="loginFormContainer">
                 <div style="text-align: center; margin-bottom: 32px;">
                     <div
@@ -5434,9 +5433,6 @@
                 </p>
             </div>
 
-            <button
-                onclick="if(localStorage.getItem('currentUser')) { document.getElementById('authModal').style.display='none'; document.body.style.overflow = 'auto'; }"
-                style="position: absolute; top: 16px; right: 16px; background: #F1F5F9; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1rem; color: #64748B;">✕</button>
         </div>
     </div>
 
@@ -5537,8 +5533,9 @@
                     } catch (e) {
                         console.warn('localStorage save failed:', e);
                     }
-                    document.getElementById('authModal').style.display = 'none';
-                    document.body.style.overflow = 'auto';
+
+                    // Hide login page and show dashboard
+                    document.getElementById('authPage').style.display = 'none';
 
                     // Show the app container using inline style
                     var appContainer = document.getElementById('app');
@@ -5611,8 +5608,9 @@
                 } catch (e) {
                     console.warn('localStorage save failed:', e);
                 }
-                document.getElementById('authModal').style.display = 'none';
-                document.body.style.overflow = 'auto';
+
+                // Hide login page and show dashboard
+                document.getElementById('authPage').style.display = 'none';
 
                 // Show the app container
                 const appContainer = document.getElementById('app');
@@ -5698,13 +5696,12 @@
             }
             document.getElementById('profileModal').style.display = 'none';
 
-            // Hide app container and show login using inline style
+            // Hide app container and show login page
             var appContainer = document.getElementById('app');
             if (appContainer) {
                 appContainer.style.display = 'none';
             }
-            document.getElementById('authModal').style.display = 'flex';
-            document.body.style.overflow = 'hidden';
+            document.getElementById('authPage').style.display = 'flex';
 
             showToast({ type: 'info', title: 'Logged out', message: 'You have been logged out' });
         }
