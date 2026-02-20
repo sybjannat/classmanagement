@@ -17,6 +17,10 @@
             font-family: 'Inter', sans-serif;
         }
 
+        html {
+            overflow-x: hidden;
+        }
+
         body {
             background-color: #F8FAFC;
             background-image:
@@ -24,6 +28,12 @@
                 linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
             background-size: 50px 50px;
             color: #1E293B;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #app {
+            display: flex;
             min-height: 100vh;
             overflow-x: hidden;
         }
@@ -1297,6 +1307,39 @@
             }
         }
 
+        /* Fix overflow for medium screens (760px - 1020px) */
+        @media (min-width: 761px) and (max-width: 1020px) {
+
+            html,
+            body {
+                overflow-x: hidden !important;
+                max-width: 100vw !important;
+            }
+
+            #app {
+                max-width: 100% !important;
+                overflow-x: hidden !important;
+            }
+
+            .main-content {
+                overflow-x: hidden !important;
+                max-width: 100% !important;
+                padding: 16px !important;
+            }
+
+            .notice-card,
+            .notice-card-vertical,
+            [class*="card"] {
+                max-width: 100% !important;
+                overflow: hidden !important;
+                box-sizing: border-box !important;
+            }
+
+            .notice-card-vertical {
+                min-height: auto !important;
+            }
+        }
+
         /* Large mobile and below (max-width: 768px) */
         @media (max-width: 768px) {
             .sidebar {
@@ -1591,6 +1634,85 @@
             #authButtonContainer>* {
                 margin-right: 0 !important;
                 flex-shrink: 0;
+            }
+        }
+
+        /* Modern Notice Card Styles */
+        .notice-card-modern {
+            position: relative;
+        }
+
+        .notice-card-modern:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+        }
+
+        /* Mobile styles (< 480px) */
+        @media (max-width: 480px) {
+            .notice-card-modern {
+                border-radius: 20px !important;
+            }
+
+            .notice-card-modern>div:first-child {
+                padding: 12px 16px !important;
+                flex-wrap: wrap;
+                gap: 8px;
+                border-radius: 20px 20px 0 0 !important;
+            }
+
+            .notice-card-modern>div:first-child span:first-child {
+                font-size: 0.7rem !important;
+                padding: 3px 10px !important;
+            }
+
+            .notice-card-modern>div:last-child {
+                padding: 16px !important;
+            }
+
+            .notice-card-modern h3 {
+                font-size: 1.1rem !important;
+            }
+
+            .notice-card-modern p {
+                font-size: 0.9rem !important;
+                margin-bottom: 16px !important;
+            }
+
+            .notice-card-modern a {
+                padding: 10px 20px !important;
+                font-size: 0.85rem !important;
+            }
+
+            .notice-card-footer {
+                flex-direction: column !important;
+                gap: 12px;
+                align-items: flex-start !important;
+            }
+
+            .notice-card-footer .mark-read {
+                width: 100%;
+                text-align: center;
+                background: #EEF2FF;
+                padding: 10px;
+                border-radius: 12px;
+            }
+        }
+
+        /* Desktop styles (> 480px) */
+        @media (min-width: 481px) {
+            .notice-card-modern {
+                max-width: 100%;
+            }
+
+            .notice-card-modern>div:first-child {
+                padding: 16px 24px !important;
+            }
+
+            .notice-card-modern>div:last-child {
+                padding: 24px !important;
+            }
+
+            .notice-card-footer {
+                flex-direction: row !important;
             }
         }
 
@@ -2126,6 +2248,11 @@
         let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
         if (!currentUser) {
             currentUser = { name: 'Student', role: 'student', avatar: 'S', studentId: '' };
+        }
+
+        // Apply saved CR mode if it was enabled
+        if (savedCRMode) {
+            currentUser.role = 'cr';
         }
 
         // Track which notices have been read by the current user
@@ -3029,41 +3156,49 @@
                     <span onclick="setNoticeFilter('unread')" style="padding: 8px 16px; border-radius: 40px; background: ${currentNoticeFilter === 'unread' ? 'linear-gradient(135deg, #059669, #10B981)' : 'white'}; border: 1px solid ${currentNoticeFilter === 'unread' ? '#059669' : '#E2E8F0'}; color: ${currentNoticeFilter === 'unread' ? 'white' : '#6B7280'}; cursor: pointer; font-size: 0.85rem;">Unread (${notices.filter(n => !isNoticeReadByUser(n.id)).length})</span>
                 </div>
                 
-                <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; flex-direction: column; gap: 20px;">
                     ${(currentNoticeFilter === 'all' ? notices : currentNoticeFilter === 'unread' ? notices.filter(n => !isNoticeReadByUser(n.id)) : notices.filter(n => n.priority === currentNoticeFilter)).sort((a, b) => b.id - a.id).map(n => `
-                        <div class="notice-card notice-card-vertical flex" style="background: white; border-radius: 28px; padding: 24px; border: 1px solid #F1F5F9; ${!isNoticeReadByUser(n.id) ? 'box-shadow: 0 4px 15px rgba(99, 102, 241, 0.1);' : ''}">
-                            <div class="flex" style="justify-content: space-between; margin-bottom: 12px;">
-                                <div class="flex badge-row-mobile" style="gap: 12px;">
-                                    <span class="badge-priority-${n.priority}">${n.priority} priority</span>
-                                    ${!isNoticeReadByUser(n.id) ? '<span style="background: #EEF2FF; color: #4F46E5; padding: 4px 12px; border-radius: 40px; font-size:0.75rem; font-weight:600;">NEW</span>' : ''}
-                                </div>
-                                <div class="flex" style="gap: 12px;">
-                                    ${currentUser.role === 'cr' ? `
-                                    <span style="color: #DC2626; cursor: pointer; font-size:0.95rem;" onclick="deleteNoticeItem('${n.id}')">
-                                        <i class="fas fa-trash"></i>
+                        <div class="notice-card-modern" style="background: white; border-radius: 24px; overflow: hidden; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.08); transition: all 0.3s ease; ${!isNoticeReadByUser(n.id) ? 'transform: translateY(-2px);' : ''}">
+                            <!-- Colorful header based on priority -->
+                            <div style="background: ${n.priority === 'high' ? 'linear-gradient(135deg, #EF4444, #F87171)' : n.priority === 'medium' ? 'linear-gradient(135deg, #F59E0B, #FBBF24)' : 'linear-gradient(135deg, #10B981, #34D399)'}; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;">
+                                <div class="flex" style="gap: 10px; align-items: center;">
+                                    <span style="background: rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; backdrop-filter: blur(4px);">
+                                        <i class="fas fa-exclamation-triangle" style="margin-right: 6px;"></i>${n.priority} priority
                                     </span>
+                                    ${!isNoticeReadByUser(n.id) ? '<span style="background: white; color: #EF4444; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">NEW</span>' : ''}
+                                </div>
+                                ${currentUser.role === 'cr' ? `
+                                <span style="color: white; cursor: pointer; opacity: 0.9;" onclick="deleteNoticeItem('${n.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </span>
+                                ` : ''}
+                            </div>
+                            
+                            <!-- Card body -->
+                            <div style="padding: 24px;">
+                                <h3 style="margin-bottom: 12px; font-size: 1.25rem; font-weight: 700; color: #1E293B; line-height: 1.4;">${n.title}</h3>
+                                <p style="color: #64748B; margin-bottom: 20px; line-height: 1.6; font-size: 0.95rem;">${n.description || n.desc || ''}</p>
+                                
+                                ${n.link ? `
+                                <div style="text-align: center; margin-bottom: 20px;">
+                                    <a href="${n.link}" target="_blank" style="display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; padding: 12px 28px; border-radius: 25px; text-decoration: none; font-weight: 600; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); transition: all 0.3s ease;">
+                                        <i class="fas fa-external-link-alt"></i> Open Link
+                                    </a>
+                                </div>
+                                ` : ''}
+                                
+                                <!-- Footer -->
+                                <div class="notice-card-footer flex" style="justify-content: space-between; padding-top: 12px; border-top: 1px solid #F1F5F9;">
+                                    <div class="flex" style="gap: 8px; align-items: center;">
+                                        <i class="far fa-bell" style="color: #94A3B8; font-size: 0.85rem;"></i>
+                                        <span style="color: #94A3B8; font-size: 0.8rem;">Posted by CR</span>
+                                    </div>
+                                    ${!isNoticeReadByUser(n.id) ? `
+                                        <span style="color: #6366F1; cursor: pointer; font-size: 0.9rem; font-weight: 600;" class="mark-read" data-id="${n.id}">
+                                            <i class="far fa-check-circle" style="margin-right: 6px;"></i>Mark as read
+                                        </span>
                                     ` : ''}
                                 </div>
-                            </div>
-                            <h3 style="margin-bottom: 8px; font-size: 1.3rem;">${n.title}</h3>
-                            <p class="text-secondary" style="margin-bottom: 20px;">${n.description || n.desc || ''}</p>
-                            ${n.link ? `
-                            <div class="notice-link-container" style="margin-bottom: 20px;">
-                                <a href="${n.link}" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #10B981, #34D399); color: white; padding: 10px 20px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
-                                    <i class="fas fa-external-link-alt"></i> Open Link
-                                </a>
-                            </div>
-                            ` : ''}
-                            <div class="flex" style="justify-content: space-between;">
-                                <div class="flex flex-row">
-                                    <i class="far fa-bell" style="color: #94A3B8;"></i>
-                                    <span style="color: #94A3B8; font-size:0.9rem;">Posted by CR</span>
-                                </div>
-                                ${!isNoticeReadByUser(n.id) ? `
-                                    <span style="color: #4F46E5; cursor: pointer; font-size:0.95rem;" class="mark-read mark-read-mobile" data-id="${n.id}">
-                                        <i class="far fa-check-circle"></i> Mark as read
-                                    </span>
-                                ` : ''}
                             </div>
                         </div>
                     `).join('')}
