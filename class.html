@@ -5526,53 +5526,66 @@
             }
 
             try {
+                console.log('Attempting login for student ID:', studentId);
                 const users = await supabaseClient.getUserByStudentId(studentId);
-                if (users && users.length > 0 && users[0].password_hash === password) {
-                    currentUser = {
-                        id: users[0].id,
-                        name: users[0].full_name,
-                        studentId: users[0].student_id,
-                        role: 'student',
-                        avatar: users[0].full_name.charAt(0).toUpperCase()
-                    };
-                    try {
-                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    } catch (e) {
-                        console.warn('localStorage save failed:', e);
-                    }
+                console.log('Supabase response:', users);
 
-                    // Hide login page and show dashboard
-                    document.getElementById('authPage').style.display = 'none';
+                if (!users || users.length === 0) {
+                    errorDiv.textContent = 'Student ID not found. Please sign up first.';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
 
-                    // Show the app container using inline style
-                    var appContainer = document.getElementById('app');
-                    if (appContainer) {
-                        appContainer.style.display = 'flex';
-                    }
-
-                    // Update header to show user avatar
-                    updateHeaderAuth();
-
-                    // Load data and render dashboard
-                    initializeData().then(() => {
-                        lastDataHash.notices = getDataHash(notices);
-                        lastDataHash.notes = getDataHash(notes);
-                        lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
-                        lastDataHash.classTests = getDataHash(classTests);
-                        startPolling();
-                        renderDashboard();
-                    });
-
-                    showToast({ type: 'success', title: 'Welcome back!', message: 'Logged in successfully' });
-                } else {
+                if (users[0].password_hash !== password) {
                     errorDiv.textContent = 'Invalid Student ID or Password';
                     errorDiv.style.display = 'block';
+                    return;
                 }
+
+                // Login successful
+                currentUser = {
+                    id: users[0].id,
+                    name: users[0].full_name,
+                    studentId: users[0].student_id,
+                    role: 'student',
+                    avatar: users[0].full_name.charAt(0).toUpperCase()
+                };
+                try {
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                } catch (e) {
+                    console.warn('localStorage save failed:', e);
+                }
+
+                // Hide login page and show dashboard
+                document.getElementById('authPage').style.display = 'none';
+
+                // Show the app container using inline style
+                var appContainer = document.getElementById('app');
+                if (appContainer) {
+                    appContainer.style.display = 'flex';
+                }
+
+                // Update header to show user avatar
+                updateHeaderAuth();
+
+                // Load data and render dashboard
+                initializeData().then(() => {
+                    lastDataHash.notices = getDataHash(notices);
+                    lastDataHash.notes = getDataHash(notes);
+                    lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
+                    lastDataHash.classTests = getDataHash(classTests);
+                    startPolling();
+                    renderDashboard();
+                });
+
+                showToast({ type: 'success', title: 'Welcome back!', message: 'Logged in successfully' });
             } catch (e) {
-                errorDiv.textContent = 'Login failed. Please try again.';
+                errorDiv.textContent = 'Login failed. Please try again. Check your internet connection.';
                 errorDiv.style.display = 'block';
+                console.error('Login error:', e);
             }
         }
+
         async function handleSignup() {
             const fullName = document.getElementById('signupFullName').value;
             const studentId = document.getElementById('signupStudentId').value;
