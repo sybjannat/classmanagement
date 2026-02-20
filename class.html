@@ -2403,6 +2403,109 @@
             members = ['Aarav Sharma', 'Vivaan Gupta', 'Aditya Kumar', 'Ananya Singh', 'Diya Patel', 'Ishaan Roy', 'Sai Krishna', 'John Mathew', 'Meera Nair', 'Rohan Joshi', 'Priya Shah', 'Karthik Iyer'];
         }
 
+        // Polling function to check for real-time updates from Supabase
+        let lastDataHash = {
+            notices: '',
+            notes: '',
+            todaysRoutine: '',
+            classTests: ''
+        };
+
+        function getDataHash(data) {
+            return JSON.stringify(data);
+        }
+
+        async function pollForUpdates() {
+            if (!USE_SUPABASE || !navigator.onLine) return;
+
+            try {
+                const [noticesData, notesData, routineData, testsData] = await Promise.all([
+                    supabaseClient.getNotices(),
+                    supabaseClient.getNotes(),
+                    supabaseClient.getTodaysRoutine(),
+                    supabaseClient.getClassTests()
+                ]);
+
+                const newNotices = (noticesData || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                const newNotes = notesData || [];
+                const newRoutine = routineData || [];
+                const newTests = testsData || [];
+
+                let dataChanged = false;
+
+                // Check if notices changed
+                if (getDataHash(newNotices) !== lastDataHash.notices) {
+                    notices = newNotices;
+                    lastDataHash.notices = getDataHash(newNotices);
+                    localStorage.setItem('notices', JSON.stringify(notices));
+                    dataChanged = true;
+                    console.log('New notices detected from Supabase!');
+                }
+
+                // Check if notes changed
+                if (getDataHash(newNotes) !== lastDataHash.notes) {
+                    notes = newNotes;
+                    lastDataHash.notes = getDataHash(newNotes);
+                    localStorage.setItem('notes', JSON.stringify(notes));
+                    dataChanged = true;
+                    console.log('New notes detected from Supabase!');
+                }
+
+                // Check if routine changed
+                if (getDataHash(newRoutine) !== lastDataHash.todaysRoutine) {
+                    todaysRoutine = newRoutine;
+                    lastDataHash.todaysRoutine = getDataHash(newRoutine);
+                    localStorage.setItem('todaysRoutine', JSON.stringify(todaysRoutine));
+                    dataChanged = true;
+                    console.log('New routine detected from Supabase!');
+                }
+
+                // Check if class tests changed
+                if (getDataHash(newTests) !== lastDataHash.classTests) {
+                    classTests = newTests;
+                    lastDataHash.classTests = getDataHash(newTests);
+                    localStorage.setItem('classTests', JSON.stringify(classTests));
+                    dataChanged = true;
+                    console.log('New class tests detected from Supabase!');
+                }
+
+                // Reload user's read notice status
+                if (currentUser && currentUser.id) {
+                    await loadUserReadNotices();
+                }
+
+                // Update UI if data changed and user is on the dashboard
+                if (dataChanged && currentPage === 'dashboard') {
+                    renderDashboard();
+                } else if (dataChanged && currentPage === 'notices') {
+                    renderNotices();
+                } else if (dataChanged && currentPage === 'notes') {
+                    renderNotes();
+                } else if (dataChanged && currentPage === 'routine') {
+                    renderRoutine();
+                } else if (dataChanged && currentPage === 'classtest') {
+                    renderClassTests();
+                }
+            } catch (error) {
+                console.error('Error polling for updates:', error);
+            }
+        }
+
+        // Start polling interval (every 10 seconds)
+        let pollInterval;
+        function startPolling() {
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(pollForUpdates, 10000); // Check every 10 seconds
+        }
+
+        // Stop polling
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
         // Save functions - save to both Supabase and localStorage
         async function saveNotices() {
             localStorage.setItem('notices', JSON.stringify(notices));
@@ -4823,6 +4926,17 @@
 
         // Notification bell click handler
         document.addEventListener('DOMContentLoaded', function () {
+            // Handle online/offline events for polling
+            window.addEventListener('online', function () {
+                console.log('Back online - resuming polling');
+                startPolling();
+            });
+
+            window.addEventListener('offline', function () {
+                console.log('Gone offline - stopping polling');
+                stopPolling();
+            });
+
             const bell = document.querySelector('.notification-bell');
             if (bell) {
                 bell.addEventListener('click', function () {
@@ -4862,6 +4976,15 @@
 
         // Initialize with mandatory authentication
         initializeData().then(() => {
+            // Initialize data hashes for polling
+            lastDataHash.notices = getDataHash(notices);
+            lastDataHash.notes = getDataHash(notes);
+            lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
+            lastDataHash.classTests = getDataHash(classTests);
+
+            // Start polling for real-time updates
+            startPolling();
+
             // Check if user is logged in
             const savedUser = localStorage.getItem('currentUser');
             if (!savedUser) {
@@ -5172,6 +5295,7 @@
         }
 
         function logout() {
+            stopPolling();
             localStorage.removeItem('currentUser');
             localStorage.removeItem('crMode');
             document.getElementById('profileModal').style.display = 'none';
