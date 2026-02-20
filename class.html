@@ -2306,12 +2306,17 @@
         // Mark notice as read for current user
         async function markNoticeAsRead(noticeId) {
             if (!currentUser || !currentUser.id) return;
+            // Check if already marked as read
+            if (userReadNotices.has(noticeId)) return;
             userReadNotices.add(noticeId);
             if (USE_SUPABASE) {
                 try {
                     await supabaseClient.markNoticeRead(noticeId, currentUser.id);
                 } catch (e) {
-                    console.log('Could not mark as read in Supabase:', e);
+                    // Ignore duplicate key errors (already marked)
+                    if (!e.message.includes('duplicate key')) {
+                        console.log('Could not mark as read in Supabase:', e);
+                    }
                 }
             }
         }
