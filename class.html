@@ -1442,7 +1442,78 @@
         <div class="toast-container" id="toastContainer"></div>
     </div>
 
-    <script src="supabase.js"></script>
+    <script>
+        // ==================== SUPABASE CLIENT ====================
+        const SUPABASE_URL = 'https://igfpnaboighqrivtniji.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnZnBuYWJvaWdocXJpdnRuaWppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NDE1NDcsImV4cCI6MjA4NzExNzU0N30.x214dTL53lmJ15tsKkcKLIdjfbuvJVPkNH_QG4NxhEY';
+
+        function isSupabaseConfigured() {
+            return SUPABASE_URL.includes('supabase.co') && SUPABASE_ANON_KEY.startsWith('eyJ');
+        }
+
+        const supabaseClient = {
+            url: SUPABASE_URL,
+            key: SUPABASE_ANON_KEY,
+
+            async request(endpoint, options = {}) {
+                const url = `${this.url}/rest/v1/${endpoint}`;
+                const headers = {
+                    'apikey': this.key,
+                    'Authorization': `Bearer ${this.key}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': options.prefer || 'return=representation'
+                };
+
+                try {
+                    const response = await fetch(url, {
+                        method: options.method || 'GET',
+                        headers: { ...headers, ...options.headers },
+                        body: options.body ? JSON.stringify(options.body) : null
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.message || 'Request failed');
+                    return data;
+                } catch (error) {
+                    console.error('Supabase request error:', error);
+                    throw error;
+                }
+            },
+
+            async getSubjects() { return this.request('subjects?order=created_at'); },
+            async addSubject(subject) { return this.request('subjects', { method: 'POST', body: subject }); },
+            async updateSubject(id, updates) { return this.request(`subjects?id=eq.${id}`, { method: 'PATCH', body: updates }); },
+            async deleteSubject(id) { return this.request(`subjects?id=eq.${id}`, { method: 'DELETE' }); },
+
+            async getNotes() { return this.request('notes?order=created_at.desc'); },
+            async addNote(note) { return this.request('notes', { method: 'POST', body: note }); },
+            async updateNote(id, updates) { return this.request(`notes?id=eq.${id}`, { method: 'PATCH', body: updates }); },
+            async deleteNote(id) { return this.request(`notes?id=eq.${id}`, { method: 'DELETE' }); },
+
+            async getNotices() { return this.request('notices?order=created_at.desc'); },
+            async addNotice(notice) { return this.request('notices', { method: 'POST', body: notice }); },
+            async updateNotice(id, updates) { return this.request(`notices?id=eq.${id}`, { method: 'PATCH', body: updates }); },
+            async deleteNotice(id) { return this.request(`notices?id=eq.${id}`, { method: 'DELETE' }); },
+
+            async getClassTests() { return this.request('class_tests?order=date'); },
+            async addClassTest(test) { return this.request('class_tests', { method: 'POST', body: test }); },
+            async updateClassTest(id, updates) { return this.request(`class_tests?id=eq.${id}`, { method: 'PATCH', body: updates }); },
+            async deleteClassTest(id) { return this.request(`class_tests?id=eq.${id}`, { method: 'DELETE' }); },
+
+            async getTodaysRoutine() { return this.request('todays_routine?order=slot_number'); },
+            async deleteTodaysRoutine(id) { return this.request(`todays_routine?id=eq.${id}`, { method: 'DELETE' }); },
+
+            async getWebsiteSettings() { const settings = await this.request('website_settings?limit=1'); return settings[0] || null; },
+            async updateWebsiteSettings(id, updates) { return this.request(`website_settings?id=eq.${id}`, { method: 'PATCH', body: updates }); },
+
+            async getMembers() { return this.request('members?order=created_at'); },
+            async addMember(member) { return this.request('members', { method: 'POST', body: member }); },
+            async deleteMember(id) { return this.request(`members?id=eq.${id}`, { method: 'DELETE' }); }
+        };
+
+        window.supabaseClient = supabaseClient;
+        window.isSupabaseConfigured = isSupabaseConfigured;
+    </script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
         AOS.init({ duration: 600, once: true, easing: 'ease-out' });
@@ -1747,6 +1818,12 @@
         // Check if Supabase is configured
         const USE_SUPABASE = typeof supabaseClient !== 'undefined' && isSupabaseConfigured && isSupabaseConfigured();
 
+        console.log('Supabase config check:', {
+            clientExists: typeof supabaseClient !== 'undefined',
+            isConfigured: typeof isSupabaseConfigured !== 'undefined' ? isSupabaseConfigured() : false,
+            USE_SUPABASE
+        });
+
         // Data arrays
         let notices = [];
         let notes = [];
@@ -1807,6 +1884,7 @@
                 try {
                     // Delete existing and re-insert
                     const existing = await supabaseClient.getNotices();
+                    console.log('Existing notices in Supabase:', existing);
                     if (existing && existing.length > 0) {
                         for (const n of existing) { await supabaseClient.deleteNotice(n.id); }
                     }
@@ -1817,7 +1895,12 @@
                         });
                     }
                     console.log('Notices saved to Supabase');
-                } catch (e) { console.error('Error saving notices:', e); }
+                } catch (e) {
+                    console.error('Error saving notices:', e);
+                    alert('Error saving to Supabase: ' + e.message);
+                }
+            } else {
+                console.log('Supabase not enabled, saving to localStorage only');
             }
         }
 
