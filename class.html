@@ -2266,6 +2266,81 @@
         // Also check on page load
         requestNotificationPermission();
 
+        // Function to send push notification with vibration and sound for live updates
+        function sendPushNotification(title, body, icon = null) {
+            // 1. Browser Push Notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try {
+                    const notification = new Notification(title, {
+                        body: body,
+                        icon: icon || 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
+                        badge: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
+                        tag: 'live-update',
+                        requireInteraction: true,
+                        vibrate: [500, 200, 500, 200, 500] // Strong vibration pattern
+                    });
+
+                    notification.onclick = function () {
+                        window.focus();
+                        this.close();
+                    };
+                } catch (e) {
+                    console.log('Push notification error:', e);
+                }
+            }
+
+            // 2. Device Vibration (strong vibration pattern)
+            if ('vibrate' in navigator) {
+                navigator.vibrate([500, 200, 500, 200, 500, 200, 500]); // Strong triple vibration
+            }
+
+            // 3. Play notification sound
+            playNotificationSound();
+        }
+
+        // Function to play notification sound
+        function playNotificationSound() {
+            try {
+                // Create audio context for playing sound
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // Create a strong beep sound
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                // Set sound parameters for a strong alert tone
+                oscillator.frequency.value = 880; // A5 note - loud and attention-grabbing
+                oscillator.type = 'square';
+
+                // Volume envelope - start loud and fade
+                gainNode.gain.setValueAtTime(0.8, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                // Play sound
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+
+                // Play a second beep for more emphasis
+                setTimeout(() => {
+                    const osc2 = audioContext.createOscillator();
+                    const gain2 = audioContext.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioContext.destination);
+                    osc2.frequency.value = 1100;
+                    osc2.type = 'square';
+                    gain2.gain.setValueAtTime(0.8, audioContext.currentTime);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    osc2.start(audioContext.currentTime);
+                    osc2.stop(audioContext.currentTime + 0.5);
+                }, 200);
+            } catch (e) {
+                console.log('Audio play error:', e);
+            }
+        }
+
         // ---------- STATE ----------
         // Check localStorage for saved CR mode state
         const savedCRMode = localStorage.getItem('crMode') === 'true';
@@ -2432,23 +2507,44 @@
                 const newTests = testsData || [];
 
                 let dataChanged = false;
+                let updateType = '';
 
                 // Check if notices changed
                 if (getDataHash(newNotices) !== lastDataHash.notices) {
+                    const newNoticeCount = newNotices.length - notices.length;
                     notices = newNotices;
                     lastDataHash.notices = getDataHash(newNotices);
                     localStorage.setItem('notices', JSON.stringify(notices));
                     dataChanged = true;
+                    updateType = 'notice';
                     console.log('New notices detected from Supabase!');
+
+                    // Send notification for new notices
+                    if (newNoticeCount > 0 && newNotices[0]) {
+                        sendPushNotification(
+                            '📢 New Notice Posted!',
+                            newNotices[0].title + (newNoticeCount > 1 ? ` (+${newNoticeCount - 1} more)` : '')
+                        );
+                    }
                 }
 
                 // Check if notes changed
                 if (getDataHash(newNotes) !== lastDataHash.notes) {
+                    const newNotesCount = newNotes.length - notes.length;
                     notes = newNotes;
                     lastDataHash.notes = getDataHash(newNotes);
                     localStorage.setItem('notes', JSON.stringify(notes));
                     dataChanged = true;
+                    updateType = 'notes';
                     console.log('New notes detected from Supabase!');
+
+                    // Send notification for new notes
+                    if (newNotesCount > 0) {
+                        sendPushNotification(
+                            '📚 New Study Notes Added!',
+                            newNotesCount + ' new note' + (newNotesCount > 1 ? 's' : '') + ' available'
+                        );
+                    }
                 }
 
                 // Check if routine changed
@@ -2457,16 +2553,33 @@
                     lastDataHash.todaysRoutine = getDataHash(newRoutine);
                     localStorage.setItem('todaysRoutine', JSON.stringify(todaysRoutine));
                     dataChanged = true;
+                    updateType = 'routine';
                     console.log('New routine detected from Supabase!');
+
+                    // Send notification for routine update
+                    sendPushNotification(
+                        '📅 Today\'s Routine Updated!',
+                        'Check the updated class schedule for today'
+                    );
                 }
 
                 // Check if class tests changed
                 if (getDataHash(newTests) !== lastDataHash.classTests) {
+                    const newTestsCount = newTests.length - classTests.length;
                     classTests = newTests;
                     lastDataHash.classTests = getDataHash(newTests);
                     localStorage.setItem('classTests', JSON.stringify(classTests));
                     dataChanged = true;
+                    updateType = 'classtest';
                     console.log('New class tests detected from Supabase!');
+
+                    // Send notification for new class tests
+                    if (newTestsCount > 0) {
+                        sendPushNotification(
+                            '📝 New Class Test Scheduled!',
+                            newTestsCount + ' new class test' + (newTestsCount > 1 ? 's' : '') + ' added'
+                        );
+                    }
                 }
 
                 // Reload user's read notice status
