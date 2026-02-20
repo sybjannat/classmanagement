@@ -2577,13 +2577,18 @@
                     localStorage.setItem('notes', JSON.stringify(notes));
                     dataChanged = true;
                     updateType = 'notes';
-                    console.log('New notes detected from Supabase!');
+                    console.log('Notes changed from Supabase!');
 
-                    // Send notification for new notes
+                    // Send notification for notes changes
                     if (newNotesCount > 0) {
                         sendPushNotification(
                             '📚 New Study Notes Added!',
                             newNotesCount + ' new note' + (newNotesCount > 1 ? 's' : '') + ' available'
+                        );
+                    } else if (newNotesCount < 0) {
+                        sendPushNotification(
+                            '📚 Study Notes Updated',
+                            Math.abs(newNotesCount) + ' note' + (Math.abs(newNotesCount) > 1 ? 's' : '') + ' removed'
                         );
                     }
                 }
