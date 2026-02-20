@@ -2377,10 +2377,21 @@
         }
 
         // ---------- STATE ----------
-        // Check localStorage for saved CR mode state
-        const savedCRMode = localStorage.getItem('crMode') === 'true';
-        // Check for logged in user
-        let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+        // Check localStorage for saved CR mode state - with error handling for Safari/Apple devices
+        let savedCRMode = false;
+        try {
+            savedCRMode = localStorage.getItem('crMode') === 'true';
+        } catch (e) {
+            console.warn('localStorage not available:', e);
+        }
+        // Check for logged in user - with error handling for Safari/Apple devices
+        let currentUser = null;
+        try {
+            currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+        } catch (e) {
+            console.warn('localStorage not available:', e);
+            currentUser = null;
+        }
         if (!currentUser) {
             currentUser = { name: 'Student', role: 'student', avatar: 'S', studentId: '' };
         }
@@ -5284,14 +5295,22 @@
         // Initialize with mandatory authentication - check auth FIRST before loading any data
         function checkAuthAndInitialize() {
             // Check if user is logged in FIRST, before any data loading
-            var savedUser = null;
+            // Need to verify user has a valid studentId (not just default guest user)
+            var isLoggedIn = false;
             try {
-                savedUser = localStorage.getItem('currentUser');
+                var savedUser = localStorage.getItem('currentUser');
+                if (savedUser) {
+                    var user = JSON.parse(savedUser);
+                    // Check if user has valid studentId (not empty)
+                    if (user && user.studentId) {
+                        isLoggedIn = true;
+                    }
+                }
             } catch (e) {
                 console.warn('localStorage not available:', e);
             }
 
-            if (!savedUser) {
+            if (!isLoggedIn) {
                 // No user logged in - show auth modal IMMEDIATELY, don't load any data
                 var authModal = document.getElementById('authModal');
                 if (authModal) {
