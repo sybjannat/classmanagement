@@ -755,9 +755,6 @@
             .main-content {
                 padding: 20px;
                 margin-bottom: 80px;
-                min-height: calc(100vh - 80px);
-                width: 100% !important;
-                margin-left: 0 !important;
             }
 
             .grid-dashboard {
@@ -1308,8 +1305,6 @@
 
             .main-content {
                 margin-left: 80px !important;
-                min-height: 100vh !important;
-                flex: 1 1 auto !important;
             }
         }
 
@@ -1386,9 +1381,6 @@
                 width: 100% !important;
                 max-width: 100% !important;
                 padding: 16px !important;
-                margin-bottom: 80px !important;
-                /* Account for bottom nav */
-                min-height: calc(100vh - 80px) !important;
             }
 
             .hero-wave,
@@ -2071,17 +2063,12 @@
         }
 
         // ---------- High Alert Notification System ----------
-        let notificationPermission = Notification ? Notification.permission : 'denied';
+        let notificationPermission = Notification.permission;
 
         // Request notification permission
         async function requestNotificationPermission() {
-            try {
-                if ('Notification' in window && Notification.permission === 'default') {
-                    notificationPermission = await Notification.requestPermission();
-                }
-            } catch (e) {
-                // Notification API not supported or error - ignore on iPad/unsupported browsers
-                notificationPermission = 'denied';
+            if ('Notification' in window && Notification.permission === 'default') {
+                notificationPermission = await Notification.requestPermission();
             }
         }
 
@@ -2126,19 +2113,15 @@
             }
 
             // 2. Push Notification
-            try {
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification('🔔 Class Test Alert!', {
-                        body: message,
-                        icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
-                        badge: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
-                        tag: 'class-test-alert',
-                        requireInteraction: true,
-                        vibrate: [500, 200, 500, 200, 1000]
-                    });
-                }
-            } catch (e) {
-                // Notification not supported
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('🔔 Class Test Alert!', {
+                    body: message,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
+                    badge: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
+                    tag: 'class-test-alert',
+                    requireInteraction: true,
+                    vibrate: [500, 200, 500, 200, 1000]
+                });
             }
 
             // 3. Play sound
@@ -2249,20 +2232,16 @@
             }
 
             // 2. Push Notification
-            try {
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification('🚨 URGENT: ' + notice.title, {
-                        body: notice.description || 'High priority notice from CR',
-                        icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
-                        badge: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
-                        tag: 'high-priority-notice',
-                        requireInteraction: true,
-                        urgency: 'critical',
-                        vibrate: [1000, 300, 1000, 300, 1000, 300, 2000]
-                    });
-                }
-            } catch (e) {
-                // Notification not supported
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('🚨 URGENT: ' + notice.title, {
+                    body: notice.description || 'High priority notice from CR',
+                    icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
+                    badge: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
+                    tag: 'high-priority-notice',
+                    requireInteraction: true,
+                    urgency: 'critical',
+                    vibrate: [1000, 300, 1000, 300, 1000, 300, 2000]
+                });
             }
 
             // 3. Play strong sound
@@ -2396,6 +2375,7 @@
                     // Save to localStorage in string format
                     localStorage.setItem('subjects', JSON.stringify(subjects));
                     localStorage.setItem('todaysRoutine', JSON.stringify(todaysRoutine));
+                    localStorage.setItem('classTests', JSON.stringify(classTests));
 
                     console.log('Data loaded from Supabase, todaysRoutine:', todaysRoutine);
                 } catch (error) {
@@ -2524,15 +2504,45 @@
             if (USE_SUPABASE) {
                 try {
                     const existing = await supabaseClient.getClassTests();
-                    if (existing && existing.length > 0) {
-                        for (const t of existing) { await supabaseClient.deleteClassTest(t.id); }
+                    const existingMap = new Map(existing.map(t => [t.id, t]));
+
+                    // Create a key for matching: subject + date + time
+                    const existingKeys = new Set(existing.map(t => `${t.subject}|${t.date}|${t.time || ''}`));
+
+                    // Delete items that exist in DB but not in local (match by subject+date+time)
+                    const localKeys = new Set(classTests.map(t => `${t.subject}|${t.date}|${t.time || ''}`));
+                    for (const t of existing) {
+                        const key = `${t.subject}|${t.date}|${t.time || ''}`;
+                        if (!localKeys.has(key)) {
+                            await supabaseClient.deleteClassTest(t.id);
+                        }
                     }
+
+                    // Add or update items
                     for (const t of classTests) {
-                        await supabaseClient.addClassTest({
-                            subject: t.subject, date: t.date, time: t.time || '', venue: t.venue || '', chapter: t.chapter || '', notes: t.notes || ''
-                        });
+                        const key = `${t.subject}|${t.date}|${t.time || ''}`;
+                        if (t.id && existingMap.has(t.id)) {
+                            // Update by ID
+                            const remote = existingMap.get(t.id);
+                            if (remote && (t.subject !== remote.subject || t.date !== remote.date || t.time !== remote.time || t.venue !== remote.venue || t.chapter !== remote.chapter || t.notes !== remote.notes)) {
+                                await supabaseClient.updateClassTest(t.id, {
+                                    subject: t.subject, date: t.date, time: t.time || '', venue: t.venue || '', chapter: t.chapter || '', notes: t.notes || ''
+                                });
+                            }
+                        } else if (!existingKeys.has(key)) {
+                            // Add new (no matching ID and no matching subject+date+time)
+                            const result = await supabaseClient.addClassTest({
+                                subject: t.subject, date: t.date, time: t.time || '', venue: t.venue || '', chapter: t.chapter || '', notes: t.notes || ''
+                            });
+                            // Capture the returned ID
+                            if (result && result[0] && result[0].id) {
+                                t.id = result[0].id;
+                            }
+                        }
                     }
                     console.log('Class tests saved to Supabase');
+                    // Update localStorage with any new IDs
+                    localStorage.setItem('classTests', JSON.stringify(classTests));
                 } catch (e) { console.error('Error saving class tests:', e); }
             }
         }
