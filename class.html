@@ -2620,8 +2620,8 @@
         // Extract course title from full subject string (removes code and teacher)
         function getCourseTitle(fullSubject) {
             if (!fullSubject) return '';
-            // Remove course code (e.g., "PHY101 - ")
-            let title = fullSubject.replace(/^[A-Za-z0-9]+ - /, '');
+            // Remove course code (e.g., "PHY101 - " or "PHY 101 - ") - more flexible matching
+            let title = fullSubject.replace(/^[A-Za-z0-9\s]+ - /, '');
             // Remove teacher name (e.g., " (Dr. Rahman)")
             title = title.replace(/ \([^)]+\)$/, '');
             return title;
@@ -2971,7 +2971,7 @@
                                         <i class="fas fa-video" style="margin-right: 6px;"></i>Join Now
                                     </a>
                                     ` : `
-                                    <span style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 500;">${cls.online ? '<i class="fas fa-laptop" style="margin-right:5px;"></i>Online' : (cls.venue ? '<i class="fas fa-building" style="margin-right:5px;"></i>' + cls.venue : '')}</span>
+                                    <span style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; white-space: nowrap; min-width: 90px; text-align: center; display: inline-flex; align-items: center; justify-content: center;">${cls.online ? '<i class="fas fa-laptop" style="margin-right:5px;"></i>Online' : (cls.venue ? '<i class="fas fa-building" style="margin-right:5px;"></i>' + cls.venue : '')}</span>
                                     `}
                                 </div>
                             </div>
@@ -3020,7 +3020,7 @@
                                             <span style="opacity: 0.7; font-size: 0.9rem; color: #64748B;"><i class="far fa-calendar-alt" style="margin-right: 5px;"></i>${test.date} at ${test.time.split(' - ')[0]}</span>
                                         </div>
                                     </div>
-                                    <span style="background: ${isUrgent ? '#EF4444' : '#D97706'}; color: white; padding: 6px 12px; border-radius: 16px; font-size: 0.75rem; font-weight: 600;">${daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : daysUntil + ' days'}</span>
+                                    <span style="background: ${isUrgent ? '#EF4444' : '#D97706'}; color: white; padding: 6px 12px; border-radius: 16px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; min-width: 65px; text-align: center; display: inline-flex; align-items: center; justify-content: center;">${daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : daysUntil + ' days'}</span>
                                 </div>
                             </div>
                                 `;
