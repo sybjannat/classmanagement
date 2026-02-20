@@ -2962,8 +2962,13 @@
             showDeleteConfirm(
                 'Are you sure you want to delete this note?',
                 () => {
+                    const noteToDelete = notes[index];
                     notes.splice(index, 1);
                     localStorage.setItem('notes', JSON.stringify(notes));
+                    // Also delete from Supabase if using Supabase
+                    if (USE_SUPABASE && noteToDelete && noteToDelete.id && String(noteToDelete.id).includes('-')) {
+                        supabaseClient.deleteNote(noteToDelete.id).catch(e => console.error('Error deleting from Supabase:', e));
+                    }
                     setTimeout(() => {
                         reRenderCurrentPage();
                     }, 250);
