@@ -5543,13 +5543,18 @@
                 const users = await supabaseClient.getUserByStudentId(studentId);
                 console.log('Supabase response:', users);
 
-                if (!users || users.length === 0) {
+                if (!users || !Array.isArray(users) || users.length === 0) {
                     errorDiv.textContent = 'Student ID not found. Please sign up first.';
                     errorDiv.style.display = 'block';
                     return;
                 }
 
-                if (users[0].password_hash !== password) {
+                const user = users[0];
+                console.log('User data:', user);
+                console.log('Stored password hash:', user.password_hash);
+                console.log('Entered password:', password);
+
+                if (user.password_hash !== password) {
                     errorDiv.textContent = 'Invalid Student ID or Password';
                     errorDiv.style.display = 'block';
                     return;
@@ -5557,11 +5562,11 @@
 
                 // Login successful
                 currentUser = {
-                    id: users[0].id,
-                    name: users[0].full_name,
-                    studentId: users[0].student_id,
+                    id: user.id,
+                    name: user.full_name,
+                    studentId: user.student_id,
                     role: 'student',
-                    avatar: users[0].full_name.charAt(0).toUpperCase()
+                    avatar: user.full_name.charAt(0).toUpperCase()
                 };
                 try {
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -5637,8 +5642,22 @@
                 });
                 console.log('User created:', newUser);
 
+                // Handle different response formats (array or object)
+                const createdUser = Array.isArray(newUser) ? newUser[0] : newUser;
+
+                if (!createdUser || !createdUser.id) {
+                    // User might already exist - check again
+                    const checkAgain = await supabaseClient.getUserByStudentId(studentId);
+                    if (checkAgain && checkAgain.length > 0) {
+                        errorDiv.textContent = 'Student ID already registered';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+                    throw new Error('Failed to create user');
+                }
+
                 currentUser = {
-                    id: newUser.id,
+                    id: createdUser.id,
                     name: fullName,
                     studentId: studentId,
                     role: 'student',
