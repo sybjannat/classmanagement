@@ -2401,11 +2401,14 @@
             if (!currentUser || !currentUser.id || !USE_SUPABASE) return;
             try {
                 const readStatus = await supabaseClient.getNoticeReadStatus(null, currentUser.id);
+                // Clear existing set and reload from Supabase for proper sync
+                userReadNotices.clear();
                 if (readStatus && Array.isArray(readStatus)) {
                     readStatus.forEach(status => {
                         userReadNotices.add(status.notice_id);
                     });
                 }
+                console.log('Loaded read status for user:', userReadNotices.size, 'notices read');
             } catch (e) {
                 console.log('Could not load read status:', e);
             }
@@ -2625,6 +2628,9 @@
                     await loadUserReadNotices();
                 }
 
+                // Update unread notification badge
+                updateUnreadBadge();
+
                 // Update UI if data changed and user is on the dashboard
                 if (dataChanged && currentPage === 'dashboard') {
                     renderDashboard();
@@ -2654,6 +2660,23 @@
             if (pollInterval) {
                 clearInterval(pollInterval);
                 pollInterval = null;
+            }
+        }
+
+        // Function to update unread notification badge
+        function updateUnreadBadge() {
+            const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
+            const badge = document.getElementById('unreadBadge');
+            const dot = document.getElementById('unreadDot');
+            if (badge) {
+                if (unreadCount > 0) {
+                    badge.style.display = 'flex';
+                    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                    if (dot) dot.style.display = 'block';
+                } else {
+                    badge.style.display = 'none';
+                    if (dot) dot.style.display = 'none';
+                }
             }
         }
 
