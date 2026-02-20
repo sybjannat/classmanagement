@@ -1893,8 +1893,21 @@
                         body: options.body ? JSON.stringify(options.body) : null
                     });
 
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.message || 'Request failed');
+                    const text = await response.text();
+
+                    // Handle empty responses
+                    if (!text || text === '') {
+                        return [];
+                    }
+
+                    const data = JSON.parse(text);
+
+                    if (!response.ok) {
+                        // Check for Supabase error format
+                        const errorMsg = data.message || (data.error ? data.error : 'Request failed');
+                        throw new Error(errorMsg);
+                    }
+
                     return data;
                 } catch (error) {
                     console.error('Supabase request error:', error);
@@ -5606,18 +5619,23 @@
             }
 
             try {
+                console.log('Checking for existing user with ID:', studentId);
                 const existing = await supabaseClient.getUserByStudentId(studentId);
+                console.log('Existing user check result:', existing);
+
                 if (existing && existing.length > 0) {
                     errorDiv.textContent = 'Student ID already registered';
                     errorDiv.style.display = 'block';
                     return;
                 }
 
+                console.log('Creating new user with ID:', studentId);
                 const newUser = await supabaseClient.createUser({
                     student_id: studentId,
                     full_name: fullName,
                     password_hash: password
                 });
+                console.log('User created:', newUser);
 
                 currentUser = {
                     id: newUser.id,
@@ -5656,8 +5674,9 @@
 
                 showToast({ type: 'success', title: 'Welcome!', message: 'Account created successfully' });
             } catch (e) {
-                errorDiv.textContent = 'Signup failed. Please try again.';
+                errorDiv.textContent = 'Signup failed. Please try again. Check your internet connection.';
                 errorDiv.style.display = 'block';
+                console.error('Signup error:', e);
             }
         }
 
