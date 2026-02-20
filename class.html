@@ -5370,6 +5370,10 @@
                     var appContainer = document.getElementById('app');
                     if (appContainer) {
                         appContainer.style.display = 'flex';
+                        // Force browser repaint with small delay
+                        setTimeout(function () {
+                            appContainer.style.display = 'flex';
+                        }, 50);
                     }
 
                     // Update header to show user avatar
@@ -5592,28 +5596,67 @@
                 }
 
                 // Hide login page and show dashboard
-                document.getElementById('authPage').style.display = 'none';
+                try {
+                    document.getElementById('authPage').style.display = 'none';
+                } catch (e) {
+                    console.error('Error hiding authPage:', e);
+                }
 
                 // Show the app container using inline style
-                var appContainer = document.getElementById('app');
-                if (appContainer) {
-                    appContainer.style.display = 'flex';
+                try {
+                    var appContainer = document.getElementById('app');
+                    if (appContainer) {
+                        appContainer.style.display = 'flex';
+                        console.log('App container shown successfully');
+                        // Force browser repaint with small delay
+                        setTimeout(function () {
+                            appContainer.style.display = 'flex';
+                        }, 50);
+                    } else {
+                        console.error('App container not found!');
+                        alert('ERROR: App container not found in DOM!');
+                    }
+                } catch (e) {
+                    console.error('Error showing app:', e);
+                    alert('ERROR showing app: ' + e.message);
                 }
 
                 // Update header to show user avatar
-                updateHeaderAuth();
+                try {
+                    updateHeaderAuth();
+                } catch (e) {
+                    console.error('Error updating header:', e);
+                }
 
                 // Load data and render dashboard
-                initializeData().then(() => {
-                    lastDataHash.notices = getDataHash(notices);
-                    lastDataHash.notes = getDataHash(notes);
-                    lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
-                    lastDataHash.classTests = getDataHash(classTests);
-                    startPolling();
-                    renderDashboard();
-                });
+                try {
+                    initializeData().then(() => {
+                        try {
+                            lastDataHash.notices = getDataHash(notices);
+                            lastDataHash.notes = getDataHash(notes);
+                            lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
+                            lastDataHash.classTests = getDataHash(classTests);
+                            startPolling();
+                            renderDashboard();
+                            console.log('Dashboard rendered successfully');
+                        } catch (e) {
+                            console.error('Error in dashboard render:', e);
+                        }
+                    }).catch(err => {
+                        console.error('Error initializing data:', err);
+                    });
+                } catch (e) {
+                    console.error('Error in load data:', e);
+                }
 
                 showToast({ type: 'success', title: 'Welcome back!', message: 'Logged in successfully' });
+
+                // Final confirmation
+                setTimeout(function () {
+                    var appDisplay = document.getElementById('app').style.display;
+                    var authDisplay = document.getElementById('authPage').style.display;
+                    console.log('Final state - app display:', appDisplay, 'authPage display:', authDisplay);
+                }, 200);
             } catch (e) {
                 console.error('Login error:', e);
                 errorDiv.textContent = 'Login failed: ' + e.message + '. Please try again.';
@@ -5694,6 +5737,10 @@
                 const appContainer = document.getElementById('app');
                 if (appContainer) {
                     appContainer.style.display = 'flex';
+                    // Force browser repaint with small delay
+                    setTimeout(function () {
+                        appContainer.style.display = 'flex';
+                    }, 50);
                 }
 
                 // Update header to show user avatar
