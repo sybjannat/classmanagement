@@ -4,10 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Class Management">
-    <meta name="format-detection" content="telephone=no">
     <title>YE-48 — Class Management</title>
     <!-- Fonts & Icons -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900&f[]=inter@400,500,600&display=swap" rel="stylesheet">
@@ -1978,11 +1974,7 @@
     </script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
-        try {
-            AOS.init({ duration: 600, once: true, easing: 'ease-out' });
-        } catch (e) {
-            console.log('AOS init skipped');
-        }
+        AOS.init({ duration: 600, once: true, easing: 'ease-out' });
 
         // ---------- Modern Delete Confirmation ----------
         let deleteConfirmCallback = null;
@@ -5281,54 +5273,44 @@
         });
 
         // Initialize with mandatory authentication
-        try {
-            initializeData().then(() => {
-                // Initialize data hashes for polling
-                lastDataHash.notices = getDataHash(notices);
-                lastDataHash.notes = getDataHash(notes);
-                lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
-                lastDataHash.classTests = getDataHash(classTests);
+        initializeData().then(() => {
+            // Initialize data hashes for polling
+            lastDataHash.notices = getDataHash(notices);
+            lastDataHash.notes = getDataHash(notes);
+            lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
+            lastDataHash.classTests = getDataHash(classTests);
 
-                // Start polling for real-time updates
-                startPolling();
+            // Start polling for real-time updates
+            startPolling();
 
-                // Check if user is logged in
-                const savedUser = localStorage.getItem('currentUser');
-                if (!savedUser) {
-                    // No user logged in - show auth modal and don't render dashboard
-                    document.getElementById('authModal').style.display = 'flex';
-                    // Hide the main app content until logged in
-                    document.body.style.overflow = 'hidden';
-                    return;
+            // Check if user is logged in
+            const savedUser = localStorage.getItem('currentUser');
+            if (!savedUser) {
+                // No user logged in - show auth modal and don't render dashboard
+                document.getElementById('authModal').style.display = 'flex';
+                // Hide the main app content until logged in
+                document.body.style.overflow = 'hidden';
+                return;
+            }
+
+            // User is logged in - render dashboard
+            renderDashboard();
+
+            // Check unread notices and update badge
+            if (notices.some(n => !isNoticeReadByUser(n.id))) {
+                const badge = document.getElementById('unreadBadge');
+                const dot = document.getElementById('unreadDot');
+                if (badge) {
+                    const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
+                    badge.style.display = 'flex';
+                    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                    if (dot) dot.style.display = 'block';
                 }
-
-                // User is logged in - render dashboard
-                try {
-                    renderDashboard();
-                } catch (e) {
-                    console.log('Error rendering dashboard:', e);
-                }
-
-                // Check unread notices and update badge
-                if (notices.some(n => !isNoticeReadByUser(n.id))) {
-                    const badge = document.getElementById('unreadBadge');
-                    const dot = document.getElementById('unreadDot');
-                    if (badge) {
-                        const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
-                        badge.style.display = 'flex';
-                        badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-                        if (dot) dot.style.display = 'block';
-                    }
-                } else {
-                    const dot = document.getElementById('unreadDot');
-                    if (dot) dot.style.display = 'none';
-                }
-            }).catch(e => {
-                console.log('Error initializing data:', e);
-            });
-        } catch (e) {
-            console.log('Init error:', e);
-        }
+            } else {
+                const dot = document.getElementById('unreadDot');
+                if (dot) dot.style.display = 'none';
+            }
+        });
     </script>
 
     <!-- Modern Auth Modal (Login/Signup) -->
@@ -5485,7 +5467,6 @@
             }
 
             try {
-                // Try Supabase first
                 const users = await supabaseClient.getUserByStudentId(studentId);
                 if (users && users.length > 0 && users[0].password_hash === password) {
                     currentUser = {
@@ -5500,31 +5481,12 @@
                     document.body.style.overflow = 'auto';
                     showToast({ type: 'success', title: 'Welcome back!', message: 'Logged in successfully' });
                     location.reload();
-                    return;
+                } else {
+                    errorDiv.textContent = 'Invalid Student ID or Password';
+                    errorDiv.style.display = 'block';
                 }
             } catch (e) {
-                console.log('Supabase login error, trying local fallback:', e);
-            }
-
-            // Fallback to local storage authentication
-            const savedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-            const localUser = savedUsers.find(u => u.student_id === studentId && u.password_hash === password);
-
-            if (localUser) {
-                currentUser = {
-                    id: localUser.id,
-                    name: localUser.full_name,
-                    studentId: localUser.student_id,
-                    role: 'student',
-                    avatar: localUser.full_name.charAt(0).toUpperCase()
-                };
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                document.getElementById('authModal').style.display = 'none';
-                document.body.style.overflow = 'auto';
-                showToast({ type: 'success', title: 'Welcome back!', message: 'Logged in successfully' });
-                location.reload();
-            } else {
-                errorDiv.textContent = 'Invalid Student ID or Password';
+                errorDiv.textContent = 'Login failed. Please try again.';
                 errorDiv.style.display = 'block';
             }
         }
@@ -5548,7 +5510,6 @@
             }
 
             try {
-                // Try Supabase first
                 const existing = await supabaseClient.getUserByStudentId(studentId);
                 if (existing && existing.length > 0) {
                     errorDiv.textContent = 'Student ID already registered';
@@ -5575,39 +5536,8 @@
                 showToast({ type: 'success', title: 'Welcome!', message: 'Account created successfully' });
                 location.reload();
             } catch (e) {
-                console.log('Supabase signup error, using local fallback:', e);
-
-                // Fallback to local storage
-                const savedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-                const userExists = savedUsers.some(u => u.student_id === studentId);
-
-                if (userExists) {
-                    errorDiv.textContent = 'Student ID already registered';
-                    errorDiv.style.display = 'block';
-                    return;
-                }
-
-                const newLocalUser = {
-                    id: 'local_' + Date.now(),
-                    student_id: studentId,
-                    full_name: fullName,
-                    password_hash: password
-                };
-                savedUsers.push(newLocalUser);
-                localStorage.setItem('users', JSON.stringify(savedUsers));
-
-                currentUser = {
-                    id: newLocalUser.id,
-                    name: fullName,
-                    studentId: studentId,
-                    role: 'student',
-                    avatar: fullName.charAt(0).toUpperCase()
-                };
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                document.getElementById('authModal').style.display = 'none';
-                document.body.style.overflow = 'auto';
-                showToast({ type: 'success', title: 'Welcome!', message: 'Account created successfully' });
-                location.reload();
+                errorDiv.textContent = 'Signup failed. Please try again.';
+                errorDiv.style.display = 'block';
             }
         }
 
