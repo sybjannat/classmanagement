@@ -5280,45 +5280,70 @@
             }
         });
 
-        // Initialize with mandatory authentication
-        initializeData().then(() => {
-            // Initialize data hashes for polling
-            lastDataHash.notices = getDataHash(notices);
-            lastDataHash.notes = getDataHash(notes);
-            lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
-            lastDataHash.classTests = getDataHash(classTests);
+        // Initialize with mandatory authentication - check auth FIRST before loading any data
+        function checkAuthAndInitialize() {
+            // Check if user is logged in FIRST, before any data loading
+            let savedUser = null;
+            try {
+                savedUser = localStorage.getItem('currentUser');
+            } catch (e) {
+                console.warn('localStorage not available:', e);
+            }
 
-            // Start polling for real-time updates
-            startPolling();
-
-            // Check if user is logged in
-            const savedUser = localStorage.getItem('currentUser');
             if (!savedUser) {
-                // No user logged in - show auth modal and don't render dashboard
+                // No user logged in - show auth modal IMMEDIATELY, don't load any data
                 document.getElementById('authModal').style.display = 'flex';
-                // Hide the main app content until logged in
                 document.body.style.overflow = 'hidden';
+
+                // Also hide the app container to prevent any dashboard flash
+                const appContainer = document.getElementById('app');
+                if (appContainer) {
+                    appContainer.style.display = 'none';
+                }
+
+                // Don't load data until logged in
                 return;
             }
 
-            // User is logged in - render dashboard
-            renderDashboard();
+            // User is logged in - now load data and show dashboard
+            initializeData().then(() => {
+                // Initialize data hashes for polling
+                lastDataHash.notices = getDataHash(notices);
+                lastDataHash.notes = getDataHash(notes);
+                lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
+                lastDataHash.classTests = getDataHash(classTests);
 
-            // Check unread notices and update badge
-            if (notices.some(n => !isNoticeReadByUser(n.id))) {
-                const badge = document.getElementById('unreadBadge');
-                const dot = document.getElementById('unreadDot');
-                if (badge) {
-                    const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
-                    badge.style.display = 'flex';
-                    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-                    if (dot) dot.style.display = 'block';
+                // Start polling for real-time updates
+                startPolling();
+
+                // Show the app container
+                const appContainer = document.getElementById('app');
+                if (appContainer) {
+                    appContainer.style.display = 'flex';
                 }
-            } else {
-                const dot = document.getElementById('unreadDot');
-                if (dot) dot.style.display = 'none';
-            }
-        });
+
+                // User is logged in - render dashboard
+                renderDashboard();
+
+                // Check unread notices and update badge
+                if (notices.some(n => !isNoticeReadByUser(n.id))) {
+                    const badge = document.getElementById('unreadBadge');
+                    const dot = document.getElementById('unreadDot');
+                    if (badge) {
+                        const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
+                        badge.style.display = 'flex';
+                        badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                        if (dot) dot.style.display = 'block';
+                    }
+                } else {
+                    const dot = document.getElementById('unreadDot');
+                    if (dot) dot.style.display = 'none';
+                }
+            });
+        }
+
+        // Start authentication check immediately
+        checkAuthAndInitialize();
     </script>
 
     <!-- Modern Auth Modal (Login/Signup) -->
@@ -5484,11 +5509,31 @@
                         role: 'student',
                         avatar: users[0].full_name.charAt(0).toUpperCase()
                     };
-                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    try {
+                        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    } catch (e) {
+                        console.warn('localStorage save failed:', e);
+                    }
                     document.getElementById('authModal').style.display = 'none';
                     document.body.style.overflow = 'auto';
+
+                    // Show the app container
+                    const appContainer = document.getElementById('app');
+                    if (appContainer) {
+                        appContainer.style.display = 'flex';
+                    }
+
+                    // Load data and render dashboard
+                    initializeData().then(() => {
+                        lastDataHash.notices = getDataHash(notices);
+                        lastDataHash.notes = getDataHash(notes);
+                        lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
+                        lastDataHash.classTests = getDataHash(classTests);
+                        startPolling();
+                        renderDashboard();
+                    });
+
                     showToast({ type: 'success', title: 'Welcome back!', message: 'Logged in successfully' });
-                    location.reload();
                 } else {
                     errorDiv.textContent = 'Invalid Student ID or Password';
                     errorDiv.style.display = 'block';
@@ -5538,11 +5583,31 @@
                     role: 'student',
                     avatar: fullName.charAt(0).toUpperCase()
                 };
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                try {
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                } catch (e) {
+                    console.warn('localStorage save failed:', e);
+                }
                 document.getElementById('authModal').style.display = 'none';
                 document.body.style.overflow = 'auto';
+
+                // Show the app container
+                const appContainer = document.getElementById('app');
+                if (appContainer) {
+                    appContainer.style.display = 'flex';
+                }
+
+                // Load data and render dashboard
+                initializeData().then(() => {
+                    lastDataHash.notices = getDataHash(notices);
+                    lastDataHash.notes = getDataHash(notes);
+                    lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
+                    lastDataHash.classTests = getDataHash(classTests);
+                    startPolling();
+                    renderDashboard();
+                });
+
                 showToast({ type: 'success', title: 'Welcome!', message: 'Account created successfully' });
-                location.reload();
             } catch (e) {
                 errorDiv.textContent = 'Signup failed. Please try again.';
                 errorDiv.style.display = 'block';
@@ -5602,11 +5667,23 @@
 
         function logout() {
             stopPolling();
-            localStorage.removeItem('currentUser');
-            localStorage.removeItem('crMode');
+            try {
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('crMode');
+            } catch (e) {
+                console.warn('localStorage remove failed:', e);
+            }
             document.getElementById('profileModal').style.display = 'none';
+
+            // Hide app container and show login
+            const appContainer = document.getElementById('app');
+            if (appContainer) {
+                appContainer.style.display = 'none';
+            }
+            document.getElementById('authModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
             showToast({ type: 'info', title: 'Logged out', message: 'You have been logged out' });
-            setTimeout(() => location.reload(), 1000);
         }
     </script>
 
