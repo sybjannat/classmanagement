@@ -1442,6 +1442,7 @@
         <div class="toast-container" id="toastContainer"></div>
     </div>
 
+    <script src="supabase.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
         AOS.init({ duration: 600, once: true, easing: 'ease-out' });
@@ -1742,19 +1743,169 @@
         let archivedTerms = [];
         let unreadNotices = true;
 
-        // Website settings (stored in localStorage)
-        let websiteSettings = JSON.parse(localStorage.getItem('websiteSettings')) || {
-            logoIcon: 'fa-scroll',
-            websiteName: 'YE-48'
-        };
+        // ---------- DATA MANAGEMENT WITH SUPABASE ----------
+        // Check if Supabase is configured
+        const USE_SUPABASE = typeof supabaseClient !== 'undefined' && isSupabaseConfigured && isSupabaseConfigured();
 
-        // Load notices from localStorage or initialize as empty
-        let notices = JSON.parse(localStorage.getItem('notices')) || [];
+        // Data arrays
+        let notices = [];
+        let notes = [];
+        let subjects = [];
+        let todaysRoutine = [];
+        let classTests = [];
+        let websiteSettings = { logoIcon: 'fa-scroll', websiteName: 'YE-48' };
+        let members = [];
 
-        // Load notes from localStorage or initialize as empty
-        let notes = JSON.parse(localStorage.getItem('notes')) || [];
+        // Initialize data from Supabase or localStorage
+        async function initializeData() {
+            if (USE_SUPABASE) {
+                try {
+                    // Load from Supabase
+                    const [noticesData, notesData, subjectsData, routineData, testsData, settingsData, membersData] = await Promise.all([
+                        supabaseClient.getNotices(),
+                        supabaseClient.getNotes(),
+                        supabaseClient.getSubjects(),
+                        supabaseClient.getTodaysRoutine(),
+                        supabaseClient.getClassTests(),
+                        supabaseClient.getWebsiteSettings(),
+                        supabaseClient.getMembers()
+                    ]);
 
-        let members = ['Aarav Sharma', 'Vivaan Gupta', 'Aditya Kumar', 'Ananya Singh', 'Diya Patel', 'Ishaan Roy', 'Sai Krishna', 'John Mathew', 'Meera Nair', 'Rohan Joshi', 'Priya Shah', 'Karthik Iyer'];
+                    notices = noticesData || [];
+                    notes = notesData || [];
+                    subjects = subjectsData || [];
+                    todaysRoutine = routineData || [];
+                    classTests = testsData || [];
+                    websiteSettings = settingsData || { logoIcon: 'fa-scroll', websiteName: 'YE-48' };
+                    members = membersData || [];
+
+                    console.log('Data loaded from Supabase');
+                } catch (error) {
+                    console.error('Error loading from Supabase:', error);
+                    // Fallback to localStorage
+                    loadFromLocalStorage();
+                }
+            } else {
+                loadFromLocalStorage();
+            }
+        }
+
+        function loadFromLocalStorage() {
+            notices = JSON.parse(localStorage.getItem('notices')) || [];
+            notes = JSON.parse(localStorage.getItem('notes')) || [];
+            subjects = JSON.parse(localStorage.getItem('subjects')) || [];
+            todaysRoutine = JSON.parse(localStorage.getItem('todaysRoutine')) || [];
+            classTests = JSON.parse(localStorage.getItem('classTests')) || [];
+            websiteSettings = JSON.parse(localStorage.getItem('websiteSettings')) || { logoIcon: 'fa-scroll', websiteName: 'YE-48' };
+            members = ['Aarav Sharma', 'Vivaan Gupta', 'Aditya Kumar', 'Ananya Singh', 'Diya Patel', 'Ishaan Roy', 'Sai Krishna', 'John Mathew', 'Meera Nair', 'Rohan Joshi', 'Priya Shah', 'Karthik Iyer'];
+        }
+
+        // Save functions - save to both Supabase and localStorage
+        async function saveNotices() {
+            localStorage.setItem('notices', JSON.stringify(notices));
+            if (USE_SUPABASE) {
+                try {
+                    // Delete existing and re-insert
+                    const existing = await supabaseClient.getNotices();
+                    if (existing && existing.length > 0) {
+                        for (const n of existing) { await supabaseClient.deleteNotice(n.id); }
+                    }
+                    for (const n of notices) {
+                        await supabaseClient.addNotice({
+                            title: n.title, description: n.description, priority: n.priority,
+                            link: n.link || '', pinned: n.pinned || false, read: n.read || false, expiry: n.expiry || ''
+                        });
+                    }
+                    console.log('Notices saved to Supabase');
+                } catch (e) { console.error('Error saving notices:', e); }
+            }
+        }
+
+        async function saveNotes() {
+            localStorage.setItem('notes', JSON.stringify(notes));
+            if (USE_SUPABASE) {
+                try {
+                    const existing = await supabaseClient.getNotes();
+                    if (existing && existing.length > 0) {
+                        for (const n of existing) { await supabaseClient.deleteNote(n.id); }
+                    }
+                    for (const n of notes) {
+                        await supabaseClient.addNote({
+                            subject: n.subject, title: n.title, description: n.description,
+                            link: n.link || '', type: n.type || 'telegram'
+                        });
+                    }
+                    console.log('Notes saved to Supabase');
+                } catch (e) { console.error('Error saving notes:', e); }
+            }
+        }
+
+        async function saveSubjects() {
+            localStorage.setItem('subjects', JSON.stringify(subjects));
+            if (USE_SUPABASE) {
+                try {
+                    const existing = await supabaseClient.getSubjects();
+                    if (existing && existing.length > 0) {
+                        for (const s of existing) { await supabaseClient.deleteSubject(s.id); }
+                    }
+                    for (const s of subjects) {
+                        await supabaseClient.addSubject({ name: s.name, teacher: s.teacher || '', color: s.color || '' });
+                    }
+                    console.log('Subjects saved to Supabase');
+                } catch (e) { console.error('Error saving subjects:', e); }
+            }
+        }
+
+        async function saveTodaysRoutine() {
+            localStorage.setItem('todaysRoutine', JSON.stringify(todaysRoutine));
+            if (USE_SUPABASE) {
+                try {
+                    const existing = await supabaseClient.getTodaysRoutine();
+                    if (existing && existing.length > 0) {
+                        for (const r of existing) { await supabaseClient.deleteTodaysRoutine(r.id); }
+                    }
+                    for (let i = 0; i < todaysRoutine.length; i++) {
+                        const r = todaysRoutine[i];
+                        await supabaseClient.request('todays_routine', {
+                            method: 'POST',
+                            body: { slot_number: i + 1, subject: r.subject, time: r.time || '', venue: r.venue || '', online: r.online || false, meeting_link: r.meetingLink || '' }
+                        });
+                    }
+                    console.log('Routine saved to Supabase');
+                } catch (e) { console.error('Error saving routine:', e); }
+            }
+        }
+
+        async function saveClassTests() {
+            localStorage.setItem('classTests', JSON.stringify(classTests));
+            if (USE_SUPABASE) {
+                try {
+                    const existing = await supabaseClient.getClassTests();
+                    if (existing && existing.length > 0) {
+                        for (const t of existing) { await supabaseClient.deleteClassTest(t.id); }
+                    }
+                    for (const t of classTests) {
+                        await supabaseClient.addClassTest({
+                            subject: t.subject, date: t.date, time: t.time || '', venue: t.venue || '', chapter: t.chapter || '', notes: t.notes || ''
+                        });
+                    }
+                    console.log('Class tests saved to Supabase');
+                } catch (e) { console.error('Error saving class tests:', e); }
+            }
+        }
+
+        async function saveWebsiteSettings() {
+            localStorage.setItem('websiteSettings', JSON.stringify(websiteSettings));
+            if (USE_SUPABASE) {
+                try {
+                    const settings = await supabaseClient.getWebsiteSettings();
+                    if (settings && settings.id) {
+                        await supabaseClient.updateWebsiteSettings(settings.id, websiteSettings);
+                    }
+                    console.log('Settings saved to Supabase');
+                } catch (e) { console.error('Error saving settings:', e); }
+            }
+        }
 
         // Visitor tracking
         const today = new Date().toLocaleDateString();
@@ -1766,9 +1917,6 @@
         }
         localStorage.setItem('visitorData', JSON.stringify(visitorData));
         const visitorsToday = visitorData.count;
-
-        // Load today's routine from localStorage
-        let todaysRoutine = JSON.parse(localStorage.getItem('todaysRoutine')) || [];
 
         // Filter state
         let currentNoteFilter = 'all';
@@ -1785,16 +1933,13 @@
             renderNotices();
         }
 
-        // Update todaysRoutine from localStorage before rendering dashboard
+        // Update todaysRoutine before rendering dashboard
         function loadTodaysRoutine() {
-            todaysRoutine = JSON.parse(localStorage.getItem('todaysRoutine')) || [];
-        }
-
-        let subjects = JSON.parse(localStorage.getItem('subjects')) || [];
-
-        // Save subjects to localStorage when modified
-        function saveSubjects() {
-            localStorage.setItem('subjects', JSON.stringify(subjects));
+            if (USE_SUPABASE) {
+                // Already loaded in initializeData
+            } else {
+                todaysRoutine = JSON.parse(localStorage.getItem('todaysRoutine')) || [];
+            }
         }
 
         // Card header gradient colors (shuffled for new cards)
@@ -3926,7 +4071,9 @@
         });
 
         // Initialize
-        renderDashboard();
+        initializeData().then(() => {
+            renderDashboard();
+        });
 
         // Check unread notices
         if (notices.some(n => !n.read)) {

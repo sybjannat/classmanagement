@@ -1,9 +1,11 @@
 // Supabase Configuration
-// Replace these values with your Supabase project credentials
 const SUPABASE_URL = 'https://igfpnaboighqrivtniji.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnZnBuYWJvaWdocXJpdnRuaWppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgxNTc2NDMsImV4cCI6MjA1MzczMzY0M30.pE3r2JQZk8T5iCjKQG9E5rQrG1K2XZ8vN5wL6YkXx3M';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnZnBuYWJvaWdocXJpdnRuaWppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NDE1NDcsImV4cCI6MjA4NzExNzU0N30.x214dTL53lmJ15tsKkcKLIdjfbuvJVPkNH_QG4NxhEY';
 
-// Initialize Supabase client
+// Check if configured
+function isSupabaseConfigured() {
+    return SUPABASE_URL.includes('supabase.co') && SUPABASE_ANON_KEY.startsWith('eyJ');
+}
 const supabaseClient = {
     url: SUPABASE_URL,
     key: SUPABASE_ANON_KEY,
