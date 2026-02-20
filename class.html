@@ -3325,14 +3325,19 @@
 
             // Add mark as read functionality
             document.querySelectorAll('.mark-read').forEach(el => {
-                el.addEventListener('click', function () {
+                // Handle both click and touch events for better mobile support
+                const handleMarkAsRead = function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     const noticeId = this.getAttribute('data-id');
                     console.log('Marking notice as read, ID:', noticeId);
                     if (noticeId) {
                         markNoticeAsRead(noticeId);
                         renderNotices();
                     }
-                });
+                };
+                el.addEventListener('click', handleMarkAsRead);
+                el.addEventListener('touchend', handleMarkAsRead);
             });
         }
 
