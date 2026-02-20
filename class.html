@@ -3,8 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>YE-48 — Class Management</title>
     <!-- Fonts & Icons -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900&f[]=inter@400,500,600&display=swap" rel="stylesheet">
@@ -30,15 +29,12 @@
             background-size: 50px 50px;
             color: #1E293B;
             min-height: 100vh;
-            min-height: -webkit-fill-available;
             overflow-x: hidden;
         }
 
         #app {
-            display: -webkit-flex;
             display: flex;
             min-height: 100vh;
-            min-height: -webkit-fill-available;
             overflow-x: hidden;
         }
 
@@ -583,14 +579,12 @@
 
         /* main content */
         .main-content {
-            -webkit-flex: 1;
             flex: 1;
             padding: 32px 40px;
             max-width: 1440px;
             margin: 0 0 0 280px;
             width: calc(100% - 280px);
             overflow-y: auto;
-            min-height: 100vh;
         }
 
         /* grid & cards */
@@ -1316,22 +1310,6 @@
                 margin-left: 80px !important;
                 min-height: 100vh !important;
                 flex: 1 1 auto !important;
-            }
-        }
-
-        /* iPad specific fixes - Safari rendering issues */
-        @supports (-webkit-touch-callout: none) {
-            @media (min-width: 768px) and (max-width: 1024px) {
-                #app {
-                    min-height: -webkit-fill-available;
-                }
-
-                .main-content {
-                    min-height: 100vh;
-                    min-height: -webkit-fill-available;
-                    display: -webkit-box;
-                    display: -webkit-flex;
-                }
             }
         }
 
@@ -4842,17 +4820,6 @@
 
         // Initialize with mandatory authentication
         initializeData().then(() => {
-            // iPad Safari fix - force layout recalculation
-            if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                const mainContent = document.getElementById('mainContent');
-                if (mainContent) {
-                    mainContent.style.display = 'none';
-                    setTimeout(() => {
-                        mainContent.style.display = 'block';
-                    }, 10);
-                }
-            }
-
             // Check if user is logged in
             const savedUser = localStorage.getItem('currentUser');
             if (!savedUser) {
