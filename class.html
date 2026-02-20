@@ -2635,6 +2635,9 @@
                     const testSchedule = JSON.parse(localStorage.getItem('classTests')) || [];
                     testSchedule.splice(index, 1);
                     localStorage.setItem('classTests', JSON.stringify(testSchedule));
+                    // Update global classTests array and save to Supabase
+                    classTests = testSchedule;
+                    saveClassTests();
                     setTimeout(() => {
                         reRenderCurrentPage();
                     }, 250);
@@ -2830,6 +2833,9 @@
                 }
 
                 localStorage.setItem('classTests', JSON.stringify(testSchedule));
+                // Update global classTests array and save to Supabase
+                classTests = testSchedule;
+                saveClassTests();
                 document.getElementById('ctModal').style.display = 'none';
                 alert(window.editingTestIndex !== null ? 'CT updated!' : 'CT scheduled: ' + s + ' on ' + d);
                 // Refresh the current page
@@ -3399,7 +3405,7 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;">
                 ${((currentNoteFilter === 'all' ? notes : notes.filter(n => n.subject === currentNoteFilter)).filter(n => !currentNoteSearch || n.title.toLowerCase().includes(currentNoteSearch) || (n.description && n.description.toLowerCase().includes(currentNoteSearch)))).map((n, index) => `
                     <div id="note-${n.id}" style="background: white; border-radius: 24px; overflow: hidden; border: 1px solid #F1F5F9; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-8px)';this.style.boxShadow='0 20px 40px rgba(0,0,0,0.1)'">
-                        <div style="background: linear-gradient(135deg, ${getCardColor(index).start}, ${getCardColor(index).end}); padding: 28px; color: white; position: relative;">
+                        <div style="background: linear-gradient(135deg, ${getCardColor(index).start}, ${getCardColor(index).end}); padding: 50px 28px 28px; color: white; position: relative;">
                             <div style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.25); padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; backdrop-filter: blur(4px);">
                                 ${getCourseTitle(n.subject)}
                             </div>
@@ -4604,6 +4610,9 @@
                     }
 
                     localStorage.setItem('classTests', JSON.stringify(testSchedule));
+                    // Update global classTests array and save to Supabase
+                    classTests = testSchedule;
+                    saveClassTests();
                     overlay.style.display = 'none';
                     alert(window.editingTestIndex !== null ? 'CT updated!' : 'CT scheduled: ' + s + ' on ' + d);
                     // Refresh the current page
