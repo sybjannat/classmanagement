@@ -2566,8 +2566,15 @@
             if (!fullSubject) return '';
             // Remove course code (e.g., "PHY101 - ")
             let title = fullSubject.replace(/^[A-Za-z0-9]+ - /, '');
+            // Also try removing any code format like "CSE-101 - " or "101 - "
+            title = title.replace(/^[A-Za-z0-9]+-[0-9]+ - /, '');
             // Remove teacher name (e.g., " (Dr. Rahman)")
             title = title.replace(/ \([^)]+\)$/, '');
+            // If title is empty or same as input, return the original without any code pattern
+            if (!title || title === fullSubject) {
+                // Try to extract just the subject name by removing any leading code-like pattern
+                title = fullSubject.replace(/^[A-Za-z0-9\-]+ - /, '').trim();
+            }
             return title;
         }
 
