@@ -32,15 +32,11 @@
             overflow-x: hidden;
         }
 
-        /* App container - hidden by default until auth check */
+        /* App container */
         #app {
             display: flex;
             min-height: 100vh;
             overflow-x: hidden;
-        }
-
-        #app.auth-required {
-            display: none !important;
         }
 
         /* custom scroll - hidden */
@@ -5288,7 +5284,7 @@
         // Initialize with mandatory authentication - check auth FIRST before loading any data
         function checkAuthAndInitialize() {
             // Check if user is logged in FIRST, before any data loading
-            let savedUser = null;
+            var savedUser = null;
             try {
                 savedUser = localStorage.getItem('currentUser');
             } catch (e) {
@@ -5297,13 +5293,16 @@
 
             if (!savedUser) {
                 // No user logged in - show auth modal IMMEDIATELY, don't load any data
-                document.getElementById('authModal').style.display = 'flex';
+                var authModal = document.getElementById('authModal');
+                if (authModal) {
+                    authModal.style.display = 'flex';
+                }
                 document.body.style.overflow = 'hidden';
 
-                // Add CSS class to hide app container
-                const appContainer = document.getElementById('app');
+                // Hide app container using inline style
+                var appContainer = document.getElementById('app');
                 if (appContainer) {
-                    appContainer.classList.add('auth-required');
+                    appContainer.style.display = 'none';
                 }
 
                 // Don't load data until logged in
@@ -5311,7 +5310,7 @@
             }
 
             // User is logged in - now load data and show dashboard
-            initializeData().then(() => {
+            initializeData().then(function () {
                 // Initialize data hashes for polling
                 lastDataHash.notices = getDataHash(notices);
                 lastDataHash.notes = getDataHash(notes);
@@ -5321,8 +5320,8 @@
                 // Start polling for real-time updates
                 startPolling();
 
-                // Show the app container
-                const appContainer = document.getElementById('app');
+                // Show the app container using inline style
+                var appContainer = document.getElementById('app');
                 if (appContainer) {
                     appContainer.style.display = 'flex';
                 }
@@ -5331,17 +5330,17 @@
                 renderDashboard();
 
                 // Check unread notices and update badge
-                if (notices.some(n => !isNoticeReadByUser(n.id))) {
-                    const badge = document.getElementById('unreadBadge');
-                    const dot = document.getElementById('unreadDot');
+                if (notices.some(function (n) { return !isNoticeReadByUser(n.id); })) {
+                    var badge = document.getElementById('unreadBadge');
+                    var dot = document.getElementById('unreadDot');
                     if (badge) {
-                        const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
+                        var unreadCount = notices.filter(function (n) { return !isNoticeReadByUser(n.id); }).length;
                         badge.style.display = 'flex';
                         badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
                         if (dot) dot.style.display = 'block';
                     }
                 } else {
-                    const dot = document.getElementById('unreadDot');
+                    var dot = document.getElementById('unreadDot');
                     if (dot) dot.style.display = 'none';
                 }
             });
@@ -5522,10 +5521,10 @@
                     document.getElementById('authModal').style.display = 'none';
                     document.body.style.overflow = 'auto';
 
-                    // Show the app container
-                    const appContainer = document.getElementById('app');
+                    // Show the app container using inline style
+                    var appContainer = document.getElementById('app');
                     if (appContainer) {
-                        appContainer.classList.remove('auth-required');
+                        appContainer.style.display = 'flex';
                     }
 
                     // Load data and render dashboard
@@ -5680,10 +5679,10 @@
             }
             document.getElementById('profileModal').style.display = 'none';
 
-            // Hide app container and show login
-            const appContainer = document.getElementById('app');
+            // Hide app container and show login using inline style
+            var appContainer = document.getElementById('app');
             if (appContainer) {
-                appContainer.classList.add('auth-required');
+                appContainer.style.display = 'none';
             }
             document.getElementById('authModal').style.display = 'flex';
             document.body.style.overflow = 'hidden';
