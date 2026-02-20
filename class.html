@@ -445,10 +445,34 @@
             position: relative;
             cursor: pointer;
             transition: all 0.3s ease;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #F3F4F6, #E5E7EB);
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .notification-bell:hover {
+            transform: scale(1.1);
+            background: linear-gradient(135deg, #6366F1, #8B5CF6);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .notification-bell:hover i {
+            color: white !important;
+        }
+
+        .notification-bell i {
+            font-size: 1.3rem;
+            color: #4B5563;
+            transition: all 0.3s ease;
         }
 
         .notification-bell:active {
-            transform: scale(0.9);
+            transform: scale(0.95);
         }
 
         .notification-bell.clicked {
@@ -481,21 +505,18 @@
             }
         }
 
-        .notification-bell:hover {
-            transform: scale(1.1);
-        }
-
         .red-dot {
             position: absolute;
-            bottom: 0px;
-            left: -4px;
-            width: 14px;
-            height: 14px;
-            background: #EF4444;
+            top: 4px;
+            right: 4px;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(135deg, #EF4444, #F97316);
             border-radius: 50%;
-            border: 2px solid white;
+            border: 2.5px solid white;
             animation: dot-pulse 1.5s ease-in-out infinite;
-            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.5);
+            box-shadow: 0 3px 10px rgba(239, 68, 68, 0.6);
+            z-index: 10;
         }
 
         @keyframes dot-pulse {
@@ -507,40 +528,41 @@
             }
 
             50% {
-                transform: scale(1.3);
-                opacity: 0.8;
+                transform: scale(1.4);
+                opacity: 0.85;
             }
         }
 
         .notification-badge {
             position: absolute;
-            top: -6px;
-            right: -6px;
-            min-width: 22px;
-            height: 22px;
-            background: linear-gradient(135deg, #EF4444, #DC2626);
+            top: -4px;
+            right: -4px;
+            min-width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #EF4444, #F97316);
             color: white;
-            border-radius: 12px;
+            border-radius: 10px;
             border: 2px solid white;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 700;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5);
-            animation: badge-pulse 2s ease-in-out infinite;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+            animation: badge-bounce 2s ease-in-out infinite;
             z-index: 10;
+            padding: 0 5px;
         }
 
-        @keyframes badge-pulse {
+        @keyframes badge-bounce {
 
             0%,
             100% {
-                transform: scale(1);
+                transform: scale(1) translateY(0);
             }
 
             50% {
-                transform: scale(1.1);
+                transform: scale(1.15) translateY(-3px);
             }
         }
 
@@ -857,6 +879,30 @@
 
             to {
                 opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
             }
         }
 
@@ -1206,7 +1252,7 @@
         @media (max-width: 500px) {
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr) !important;
-                gap: 10px !important;
+                gap: 8px !important;
             }
 
             .stats-grid>div {
@@ -1215,7 +1261,18 @@
             }
 
             .stats-grid>div>div:first-child {
-                font-size: 1.8rem !important;
+                font-size: 1.5rem !important;
+            }
+
+            .stats-grid>div i {
+                font-size: 1.2rem !important;
+                margin-bottom: 4px !important;
+                display: block !important;
+            }
+
+            .stats-grid>div>span:last-child,
+            .stats-grid>div .stat-label {
+                font-size: 0.65rem !important;
             }
         }
 
@@ -1319,15 +1376,101 @@
                 grid-template-columns: 1fr !important;
             }
 
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
             .flex {
                 flex-direction: column;
                 align-items: flex-start;
+            }
+
+            .flex[style*="justify-content: space-between"] {
+                flex-direction: row !important;
+                align-items: center !important;
+            }
+
+            .flex[style*="gap:"][style*="align-items: center"] {
+                flex-direction: row !important;
+            }
+
+            /* Keep filter options in one line on mobile */
+            .filter-container {
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 8px;
+            }
+
+            .filter-container::-webkit-scrollbar {
+                height: 4px;
+            }
+
+            .filter-container::-webkit-scrollbar-thumb {
+                background: #6366F1;
+                border-radius: 4px;
+            }
+
+            .filter-container span {
+                flex-shrink: 0 !important;
+                white-space: nowrap;
+                transition: none !important;
+            }
+
+            .filter-container span:hover {
+                transform: none !important;
+                box-shadow: none !important;
+            }
+
+            /* Notice card - priority and NEW in one line, mark as read right aligned */
+            .notice-card-vertical .badge-row-mobile {
+                flex-wrap: nowrap !important;
+                display: flex !important;
+            }
+
+            .notice-card-vertical .mark-read-mobile {
+                margin-left: auto !important;
+                display: block !important;
+            }
+
+            .mobile-title {
+                display: none !important;
+            }
+
+            @media (max-width: 480px) {
+                .desktop-title {
+                    display: none !important;
+                }
+
+                .mobile-title {
+                    display: inline !important;
+                }
+            }
+
+            .flex.flex-row {
+                flex-direction: row !important;
+                align-items: center !important;
             }
 
             .badge-priority-high,
             [class*="badge"] {
                 font-size: 0.7rem !important;
                 padding: 4px 8px !important;
+            }
+
+            /* Notice cards - smaller on mobile */
+            .notice-card {
+                padding: 16px !important;
+                border-radius: 20px !important;
+            }
+
+            .notice-card h3 {
+                font-size: 1.1rem !important;
+            }
+
+            .notice-card p {
+                font-size: 0.85rem !important;
             }
 
             .modal-content {
@@ -1344,6 +1487,158 @@
             button {
                 padding: 10px 16px !important;
                 font-size: 0.9rem !important;
+            }
+        }
+
+        /* Extra responsive improvements */
+        @media (max-width: 600px) {
+            .topbar {
+                padding: 8px 12px !important;
+                gap: 8px !important;
+            }
+
+            .notification-bell {
+                width: 38px !important;
+                height: 38px !important;
+            }
+
+            .notification-bell i {
+                font-size: 1rem !important;
+            }
+
+            .notification-badge {
+                min-width: 18px !important;
+                height: 18px !important;
+                font-size: 0.6rem !important;
+            }
+
+            #authButtonContainer button {
+                padding: 6px 12px !important;
+                font-size: 0.85rem !important;
+            }
+
+            #authButtonContainer>div {
+                margin-right: 8px !important;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .logo-mobile span {
+                font-size: 1rem !important;
+            }
+
+            .notification-bell {
+                width: 34px !important;
+                height: 34px !important;
+                border-radius: 10px !important;
+            }
+        }
+
+        /* Modal responsive styles */
+        @media (max-width: 500px) {
+
+            #authModal>div,
+            #profileModal>div {
+                padding: 24px !important;
+                border-radius: 20px !important;
+                width: 95% !important;
+                max-width: 95% !important;
+            }
+
+            #authModal h2,
+            #profileModal h2 {
+                font-size: 1.3rem !important;
+            }
+
+            #authModal input,
+            #profileModal input {
+                padding: 12px 14px !important;
+                font-size: 0.9rem !important;
+            }
+
+            #authModal button,
+            #profileModal button {
+                padding: 12px !important;
+                font-size: 0.9rem !important;
+            }
+        }
+
+        /* Dashboard greeting responsive */
+        @media (max-width: 600px) {
+            [class*="hero"] {
+                padding: 24px !important;
+                border-radius: 20px !important;
+            }
+
+            [class*="hero"] h1,
+            [class*="hero"] .satoshi {
+                font-size: 1.5rem !important;
+            }
+
+            [class*="hero"] p {
+                font-size: 0.95rem !important;
+            }
+        }
+
+        /* Keep header elements horizontal */
+        @media (max-width: 500px) {
+            #authButtonContainer {
+                flex-direction: row !important;
+                align-items: center !important;
+                gap: 8px !important;
+            }
+
+            #authButtonContainer>* {
+                margin-right: 0 !important;
+                flex-shrink: 0;
+            }
+        }
+
+        /* Notice cards responsive */
+        @media (max-width: 600px) {
+            [style*="border-radius: 28px"] {
+                padding: 16px !important;
+                border-radius: 20px !important;
+            }
+
+            [style*="border-radius: 28px"] h3 {
+                font-size: 1.1rem !important;
+            }
+        }
+
+        /* Remove hover animation from filter pills */
+        .filter-container span {
+            transition: none !important;
+        }
+
+        .filter-container span:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Notice card link button - center on larger screens */
+        @media screen and (min-width: 481px) {
+            div.notice-link-container {
+                text-align: center !important;
+                width: 100%;
+            }
+
+            div.notice-link-container a {
+                margin: 0 auto;
+                display: inline-block !important;
+            }
+
+            /* Vertical layout for notice cards on larger screens */
+            .notice-card-vertical {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                min-height: 200px;
+            }
+
+            .notice-card-vertical .notice-link-container {
+                margin-top: auto;
+                margin-bottom: auto;
             }
         }
     </style>
@@ -1388,12 +1683,15 @@
                     <i class="fas fa-bars" style="font-size: 1.5rem; display: none; color: #475569;"
                         id="menuToggle"></i>
                 </div>
-                <div class="flex">
-                    <div class="notification-bell">
+                <div class="flex" id="authButtonContainer">
+                    <div class="notification-bell" onclick="currentPage='notices';renderNotices();">
                         <i class="far fa-bell"></i>
                         <span class="notification-badge" id="unreadBadge" style="display: none;">0</span>
-                        <span class="red-dot" id="unreadDot" style="display: none;"></span>
                     </div>
+                    <button onclick="document.getElementById('authModal').style.display='flex'"
+                        style="background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 8px 16px; border-radius: 20px; color: white; cursor: pointer; font-weight: 600; margin-right: 12px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
                 </div>
             </header>
 
@@ -1494,6 +1792,19 @@
             async addNotice(notice) { return this.request('notices', { method: 'POST', body: notice }); },
             async updateNotice(id, updates) { return this.request(`notices?id=eq.${id}`, { method: 'PATCH', body: updates }); },
             async deleteNotice(id) { return this.request(`notices?id=eq.${id}`, { method: 'DELETE' }); },
+
+            // User authentication methods
+            async getUserByStudentId(studentId) { return this.request(`users?student_id=eq.${studentId}&select=*`); },
+            async createUser(userData) { return this.request('users', { method: 'POST', body: userData }); },
+            async updateUser(id, updates) { return this.request(`users?id=eq.${id}`, { method: 'PATCH', body: updates }); },
+            async getNoticeReadStatus(noticeId, userId) {
+                if (noticeId) {
+                    return this.request(`notice_read_status?notice_id=eq.${noticeId}&user_id=eq.${userId}&select=*`);
+                } else {
+                    return this.request(`notice_read_status?user_id=eq.${userId}&select=*`);
+                }
+            },
+            async markNoticeRead(noticeId, userId) { return this.request('notice_read_status', { method: 'POST', body: { notice_id: noticeId, user_id: userId } }); },
 
             async getClassTests() { return this.request('class_tests?order=date'); },
             async addClassTest(test) { return this.request('class_tests', { method: 'POST', body: test }); },
@@ -1751,7 +2062,7 @@
 
             // Check at 8am (08:00) for high priority notices
             if (currentHour === 8 && currentMinute === 0) {
-                const unreadHighPriority = notices.filter(n => n.priority === 'high' && !n.read);
+                const unreadHighPriority = notices.filter(n => n.priority === 'high' && !isNoticeReadByUser(n.id));
 
                 unreadHighPriority.forEach(notice => {
                     const notifiedKey = `notified_notice_${notice.id}`;
@@ -1809,7 +2120,50 @@
         requestNotificationPermission();
 
         // ---------- STATE ----------
-        const currentUser = { name: 'Student', role: 'student', avatar: 'S' };  // 'cr' or 'student' - default is student (disabled)
+        // Check localStorage for saved CR mode state
+        const savedCRMode = localStorage.getItem('crMode') === 'true';
+        // Check for logged in user
+        let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+        if (!currentUser) {
+            currentUser = { name: 'Student', role: 'student', avatar: 'S', studentId: '' };
+        }
+
+        // Track which notices have been read by the current user
+        let userReadNotices = new Set();
+
+        // Load user-specific notice read status from Supabase
+        async function loadUserReadNotices() {
+            if (!currentUser || !currentUser.id || !USE_SUPABASE) return;
+            try {
+                const readStatus = await supabaseClient.getNoticeReadStatus(null, currentUser.id);
+                if (readStatus && Array.isArray(readStatus)) {
+                    readStatus.forEach(status => {
+                        userReadNotices.add(status.notice_id);
+                    });
+                }
+            } catch (e) {
+                console.log('Could not load read status:', e);
+            }
+        }
+
+        // Check if notice is read by current user
+        function isNoticeReadByUser(noticeId) {
+            return userReadNotices.has(noticeId);
+        }
+
+        // Mark notice as read for current user
+        async function markNoticeAsRead(noticeId) {
+            if (!currentUser || !currentUser.id) return;
+            userReadNotices.add(noticeId);
+            if (USE_SUPABASE) {
+                try {
+                    await supabaseClient.markNoticeRead(noticeId, currentUser.id);
+                } catch (e) {
+                    console.log('Could not mark as read in Supabase:', e);
+                }
+            }
+        }
+
         let currentTerm = 'Level 3 Term 2';
         let archivedTerms = [];
         let unreadNotices = true;
@@ -1848,15 +2202,29 @@
                         supabaseClient.getMembers()
                     ]);
 
-                    notices = noticesData || [];
+                    console.log('Supabase loaded - Routine:', routineData);
+
+                    notices = (noticesData || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                    // Load user's read notice status
+                    await loadUserReadNotices();
                     notes = notesData || [];
-                    subjects = subjectsData || [];
+                    // Convert Supabase subject objects to string format for localStorage
+                    subjects = (subjectsData || []).map(s => {
+                        let str = s.name || '';
+                        if (s.teacher) str += ' (' + s.teacher + ')';
+                        return str;
+                    });
                     todaysRoutine = routineData || [];
                     classTests = testsData || [];
                     websiteSettings = settingsData || { logoIcon: 'fa-scroll', websiteName: 'YE-48' };
                     members = membersData || [];
 
-                    console.log('Data loaded from Supabase');
+                    // Save to localStorage in string format
+                    localStorage.setItem('subjects', JSON.stringify(subjects));
+                    localStorage.setItem('todaysRoutine', JSON.stringify(todaysRoutine));
+
+                    console.log('Data loaded from Supabase, todaysRoutine:', todaysRoutine);
                 } catch (error) {
                     console.error('Error loading from Supabase:', error);
                     // Fallback to localStorage
@@ -1891,7 +2259,8 @@
                     for (const n of notices) {
                         await supabaseClient.addNotice({
                             title: n.title, description: n.description, priority: n.priority,
-                            link: n.link || '', pinned: n.pinned || false, read: n.read || false, expiry: n.expiry || ''
+                            link: n.link || '', pinned: n.pinned || false, read: n.read || false, expiry: n.expiry || '',
+                            created_at: n.created_at || new Date().toISOString()
                         });
                     }
                     console.log('Notices saved to Supabase');
@@ -1914,8 +2283,8 @@
                     }
                     for (const n of notes) {
                         await supabaseClient.addNote({
-                            subject: n.subject, title: n.title, description: n.description,
-                            link: n.link || '', type: n.type || 'telegram'
+                            subject: n.subject, title: n.title, description: n.desc || n.description || '',
+                            link: n.link || '', type: n.type || 'telegram', date: n.date || ''
                         });
                     }
                     console.log('Notes saved to Supabase');
@@ -1932,7 +2301,23 @@
                         for (const s of existing) { await supabaseClient.deleteSubject(s.id); }
                     }
                     for (const s of subjects) {
-                        await supabaseClient.addSubject({ name: s.name, teacher: s.teacher || '', color: s.color || '' });
+                        // Parse subject string to extract name, code, and teacher
+                        let name = s, code = '', teacher = '';
+                        // Check if it has a code prefix (e.g., "MATH101 - Algebra")
+                        const codeMatch = s.match(/^([A-Za-z0-9]+)\s*-\s*(.+)$/);
+                        if (codeMatch) {
+                            code = codeMatch[1];
+                            name = codeMatch[2];
+                        }
+                        // Check for teacher in parentheses (e.g., "Algebra (Mr. Smith)")
+                        const teacherMatch = name.match(/^(.+)\s*\(([^)]+)\)$/);
+                        if (teacherMatch) {
+                            name = teacherMatch[1];
+                            teacher = teacherMatch[2];
+                        }
+                        if (name) {
+                            await supabaseClient.addSubject({ name: name, teacher: teacher || '', color: '' });
+                        }
                     }
                     console.log('Subjects saved to Supabase');
                 } catch (e) { console.error('Error saving subjects:', e); }
@@ -1941,9 +2326,11 @@
 
         async function saveTodaysRoutine() {
             localStorage.setItem('todaysRoutine', JSON.stringify(todaysRoutine));
+            console.log('Saving todaysRoutine to Supabase, data:', todaysRoutine);
             if (USE_SUPABASE) {
                 try {
                     const existing = await supabaseClient.getTodaysRoutine();
+                    console.log('Existing routine in Supabase:', existing);
                     if (existing && existing.length > 0) {
                         for (const r of existing) { await supabaseClient.deleteTodaysRoutine(r.id); }
                     }
@@ -2003,6 +2390,7 @@
 
         // Filter state
         let currentNoteFilter = 'all';
+        let currentNoteSearch = '';
         let currentNoticeFilter = 'all';
 
         // Global filter functions
@@ -2014,6 +2402,11 @@
         function setNoticeFilter(type) {
             currentNoticeFilter = type;
             renderNotices();
+        }
+
+        function searchNotes(query) {
+            currentNoteSearch = query.toLowerCase();
+            renderNotes();
         }
 
         // Update todaysRoutine before rendering dashboard
@@ -2115,8 +2508,14 @@
             showDeleteConfirm(
                 'Are you sure you want to delete this notice?',
                 () => {
-                    notices = notices.filter(n => n.id !== noticeId);
+                    // Convert noticeId to string for comparison
+                    const idStr = String(noticeId);
+                    notices = notices.filter(n => String(n.id) !== idStr);
                     localStorage.setItem('notices', JSON.stringify(notices));
+                    // Also delete from Supabase if using Supabase
+                    if (USE_SUPABASE && noticeId.toString().includes('-')) {
+                        supabaseClient.deleteNotice(noticeId).catch(e => console.error('Error deleting from Supabase:', e));
+                    }
                     setTimeout(() => {
                         reRenderCurrentPage();
                     }, 250);
@@ -2200,7 +2599,8 @@
                 localStorage.setItem('classTests', JSON.stringify(testSchedule));
                 document.getElementById('ctModal').style.display = 'none';
                 alert(window.editingTestIndex !== null ? 'CT updated!' : 'CT scheduled: ' + s + ' on ' + d);
-                renderClassTests();
+                // Refresh the current page
+                location.reload();
             } else {
                 alert('Please fill all fields');
             }
@@ -2245,7 +2645,8 @@
             const now = new Date();
             const hour = now.getHours();
             const greeting = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
-            const unreadNoticesCount = notices.filter(n => !n.read).length;
+            const userName = currentUser && currentUser.name ? currentUser.name : '';
+            const unreadNoticesCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
             const isCR = currentUser.role === 'cr';
 
             const html = `
@@ -2254,8 +2655,8 @@
                 <div style="position: absolute; top: -50%; right: -10%; width: 300px; height: 300px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
                 <div style="position: absolute; bottom: -30%; left: -5%; width: 200px; height: 200px; background: rgba(255,255,255,0.08); border-radius: 50%;"></div>
                 <div style="position: relative; z-index: 1;">
-                    <h1 class="satoshi" style="font-size: 2.5rem; color: white; margin-bottom: 10px; animation: fadeInUp 0.8s ease;">Good ${greeting}! <i class="fas fa-sun" style="color: #FFD700;"></i></h1>
-                    <p style="font-size: 1.2rem; color: rgba(255,255,255,0.9); margin-bottom: 0;">Here's what's happening in your class today.</p>
+                    <h1 class="satoshi" style="font-size: 2.5rem; color: white; margin-bottom: 10px; animation: fadeInUp 0.8s ease;">Good ${greeting}, ${userName}! <i class="fas fa-sun" style="color: #FFD700;"></i></h1>
+                    <p style="font-size: 1.2rem; color: rgba(255,255,255,0.9); margin-bottom: 0;">Here's what's happening in our class today.</p>
                 </div>
             </div>
             
@@ -2292,7 +2693,7 @@
                     <!-- Today's Schedule -->
                     <div style="background: white; border-radius: 30px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); animation: fadeInUp 0.6s ease forwards; animation-delay: 0.2s; opacity: 0;">
                         <div class="flex" style="justify-content: space-between; margin-bottom: 24px;">
-                            <h3 style="font-size: 1.4rem; color: #1E293B; margin: 0;"><span style="background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700;"><i class="fas fa-calendar-alt" style="margin-right: 8px;"></i>Today's Schedule</span></h3>
+                            <h3 style="font-size: 1.4rem; color: #1E293B; margin: 0;"><span style="background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700;"><i class="fas fa-calendar-alt" style="margin-right: 8px;"></i>Today's Schedule</span></h3>
                             <span style="background: #EEF2FF; color: #6366F1; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">${todaysRoutine.length} classes</span>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 16px;">
@@ -2366,7 +2767,7 @@
                     return `
                     <div style="background: white; border-radius: 30px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); animation: fadeInUp 0.6s ease forwards; animation-delay: 0.25s; opacity: 0;">
                         <div class="flex" style="justify-content: space-between; margin-bottom: 24px;">
-                            <h3 style="font-size: 1.4rem; color: #1E293B; margin: 0;"><span style="background: linear-gradient(135deg, #EF4444, #F97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700;"><i class="fas fa-file-alt" style="margin-right: 8px;"></i>Upcoming Class Tests</span></h3>
+                            <h3 style="font-size: 1.4rem; color: #1E293B; margin: 0;"><span style="background: linear-gradient(135deg, #EF4444, #F97316); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700;"><i class="fas fa-file-alt" style="margin-right: 8px;"></i><span class="desktop-title">Upcoming Class Tests</span><span class="mobile-title" style="display:none;">Upcoming CT</span></span></h3>
                             <span style="background: #FEE2E2; color: #EF4444; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">${upcomingTests.length} upcoming</span>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 14px;">
@@ -2399,7 +2800,7 @@
                     <!-- Notices -->
                     <div style="background: white; border-radius: 30px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); animation: fadeInUp 0.6s ease forwards; animation-delay: 0.3s; opacity: 0;">
                         <div class="flex" style="justify-content: space-between; margin-bottom: 24px;">
-                            <h3 style="font-size: 1.4rem; color: #1E293B; margin: 0;"><span style="background: linear-gradient(135deg, #f093fb, #f5576c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700;"><i class="fas fa-bullhorn" style="margin-right: 8px;"></i>Recent Notices</span></h3>
+                            <h3 style="font-size: 1.4rem; color: #1E293B; margin: 0;"><span style="background: linear-gradient(135deg, #f093fb, #f5576c); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700;"><i class="fas fa-bullhorn" style="margin-right: 8px;"></i>Recent Notices</span></h3>
                             ${unreadNoticesCount > 0 ? `<span style="background: linear-gradient(135deg, #f5576c, #fa709a); color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">${unreadNoticesCount} new</span>` : ''}
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 14px;">
@@ -2414,7 +2815,7 @@
                                     <span style="font-weight: 600; color: #1E293B; font-size: 1rem;">${n.title}</span>
                                     ${n.priority === 'high' ? `<span style="background: #EF4444; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">URGENT</span>` : ''}
                                 </div>
-                                <p style="color: #64748B; font-size: 0.9rem; margin: 0; line-height: 1.5;">${n.description}</p>
+                                <p style="color: #64748B; font-size: 0.9rem; margin: 0; line-height: 1.5;">${n.description || n.desc || ''}</p>
                             </div>
                             `).join('')}
                         </div>
@@ -2427,7 +2828,7 @@
                     <!-- Recent Notes -->
                     <div style="background: white; border-radius: 30px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); animation: fadeInUp 0.6s ease forwards; animation-delay: 0.4s; opacity: 0;">
                         <div class="flex" style="justify-content: space-between; margin-bottom: 24px;">
-                            <h3 style="font-size: 1.4rem; color: #1E293B; margin: 0;"><span style="background: linear-gradient(135deg, #43e97b, #38f9d7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700;"><i class="fas fa-sticky-note" style="margin-right: 8px;"></i>Recent Notes</span></h3>
+                            <h3 style="font-size: 1.4rem; color: #1E293B; margin: 0;"><span style="background: linear-gradient(135deg, #43e97b, #38f9d7); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700;"><i class="fas fa-sticky-note" style="margin-right: 8px;"></i>Recent Notes</span></h3>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 12px;">
                             ${notes.length === 0 ? `
@@ -2436,7 +2837,7 @@
                                 <span style="color: #94A3B8; font-size: 1rem;">No notes yet</span>
                             </div>
                             ` : notes.slice(0, 5).map(n => `
-                            <div class="flex" style="justify-content: space-between; align-items: center; padding: 14px 16px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-radius: 16px; transition: all 0.3s; cursor: pointer;" onmouseover="this.style.transform='translateX(5px)';this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)'">
+                            <div class="flex" onclick="currentPage='notes'; renderNotes(); setTimeout(() => { const el = document.getElementById('note-${n.id}'); if(el) el.scrollIntoView({behavior: 'smooth', block: 'center'}); }, 100);" style="justify-content: space-between; align-items: center; padding: 14px 16px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-radius: 16px; transition: all 0.3s; cursor: pointer;" onmouseover="this.style.transform='translateX(5px)';this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)'">
                                 <div class="flex" style="gap: 12px; align-items: center;">
                                     <span style="background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; padding: 8px 12px; border-radius: 10px; font-size: 0.75rem; font-weight: 600;">${getCourseTitle(n.subject)}</span>
                                     <span style="color: #1E293B; font-weight: 500; font-size: 0.95rem;">${n.title}</span>
@@ -2582,7 +2983,7 @@
         }
 
         function renderNotices() {
-            const unreadCount = notices.filter(n => !n.read).length;
+            const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
             const badge = document.getElementById('unreadBadge');
             const dot = document.getElementById('unreadDot');
             if (badge) {
@@ -2622,50 +3023,44 @@
                     <h1 class="satoshi" style="font-size: 2rem;">Notices & Announcements</h1>
                 </div>
                 
-                <div class="flex" style="gap: 16px; margin: 24px 0; flex-wrap: wrap;">
-                    <span class="gradient-bg" onclick="setNoticeFilter('all')" style="padding: 8px 20px; border-radius: 40px; cursor: pointer; background: ${currentNoticeFilter === 'all' ? 'linear-gradient(135deg, #6366F1, #8B5CF6)' : 'linear-gradient(135deg, #E0E7FF, #C7D2FE)'}; color: ${currentNoticeFilter === 'all' ? 'white' : '#6366F1'};">All (${notices.length})</span>
-                    <span onclick="setNoticeFilter('high')" style="padding: 8px 20px; border-radius: 40px; background: ${currentNoticeFilter === 'high' ? 'linear-gradient(135deg, #DC2626, #EF4444)' : 'white'}; border: 1px solid ${currentNoticeFilter === 'high' ? '#DC2626' : '#E2E8F0'}; color: ${currentNoticeFilter === 'high' ? 'white' : '#6B7280'}; cursor: pointer;">Urgent (${notices.filter(n => n.priority === 'high').length})</span>
-                    <span onclick="setNoticeFilter('unread')" style="padding: 8px 20px; border-radius: 40px; background: ${currentNoticeFilter === 'unread' ? 'linear-gradient(135deg, #059669, #10B981)' : 'white'}; border: 1px solid ${currentNoticeFilter === 'unread' ? '#059669' : '#E2E8F0'}; color: ${currentNoticeFilter === 'unread' ? 'white' : '#6B7280'}; cursor: pointer;">Unread (${notices.filter(n => !n.read).length})</span>
+                <div class="flex flex-row filter-container" style="gap: 16px; margin: 24px 0; flex-wrap: wrap; flex-direction: row;">
+                    <span class="gradient-bg" onclick="setNoticeFilter('all')" style="padding: 8px 16px; border-radius: 40px; cursor: pointer; background: ${currentNoticeFilter === 'all' ? 'linear-gradient(135deg, #6366F1, #8B5CF6)' : 'linear-gradient(135deg, #E0E7FF, #C7D2FE)'}; color: ${currentNoticeFilter === 'all' ? 'white' : '#6366F1'}; font-size: 0.85rem;">All (${notices.length})</span>
+                    <span onclick="setNoticeFilter('high')" style="padding: 8px 16px; border-radius: 40px; background: ${currentNoticeFilter === 'high' ? 'linear-gradient(135deg, #DC2626, #EF4444)' : 'white'}; border: 1px solid ${currentNoticeFilter === 'high' ? '#DC2626' : '#E2E8F0'}; color: ${currentNoticeFilter === 'high' ? 'white' : '#6B7280'}; cursor: pointer; font-size: 0.85rem;">Urgent (${notices.filter(n => n.priority === 'high').length})</span>
+                    <span onclick="setNoticeFilter('unread')" style="padding: 8px 16px; border-radius: 40px; background: ${currentNoticeFilter === 'unread' ? 'linear-gradient(135deg, #059669, #10B981)' : 'white'}; border: 1px solid ${currentNoticeFilter === 'unread' ? '#059669' : '#E2E8F0'}; color: ${currentNoticeFilter === 'unread' ? 'white' : '#6B7280'}; cursor: pointer; font-size: 0.85rem;">Unread (${notices.filter(n => !isNoticeReadByUser(n.id)).length})</span>
                 </div>
                 
                 <div style="display: flex; flex-direction: column; gap: 16px;">
-                    ${(currentNoticeFilter === 'all' ? notices : currentNoticeFilter === 'unread' ? notices.filter(n => !n.read) : notices.filter(n => n.priority === currentNoticeFilter)).map(n => `
-                        <div style="background: white; border-radius: 28px; padding: 24px; border: 1px solid #F1F5F9; ${!n.read ? 'box-shadow: 0 4px 15px rgba(99, 102, 241, 0.1);' : ''}">
+                    ${(currentNoticeFilter === 'all' ? notices : currentNoticeFilter === 'unread' ? notices.filter(n => !isNoticeReadByUser(n.id)) : notices.filter(n => n.priority === currentNoticeFilter)).sort((a, b) => b.id - a.id).map(n => `
+                        <div class="notice-card notice-card-vertical flex" style="background: white; border-radius: 28px; padding: 24px; border: 1px solid #F1F5F9; ${!isNoticeReadByUser(n.id) ? 'box-shadow: 0 4px 15px rgba(99, 102, 241, 0.1);' : ''}">
                             <div class="flex" style="justify-content: space-between; margin-bottom: 12px;">
-                                <div class="flex" style="gap: 12px;">
+                                <div class="flex badge-row-mobile" style="gap: 12px;">
                                     <span class="badge-priority-${n.priority}">${n.priority} priority</span>
-                                    ${!n.read ? '<span style="background: #EEF2FF; color: #4F46E5; padding: 4px 12px; border-radius: 40px; font-size:0.75rem; font-weight:600;">NEW</span>' : ''}
+                                    ${!isNoticeReadByUser(n.id) ? '<span style="background: #EEF2FF; color: #4F46E5; padding: 4px 12px; border-radius: 40px; font-size:0.75rem; font-weight:600;">NEW</span>' : ''}
                                 </div>
                                 <div class="flex" style="gap: 12px;">
-                                    <span class="text-secondary" style="font-size:0.9rem;">${n.expiry || 'No expiry'}</span>
-                                    ${n.link ? `
-                                    <span style="color: #10B981; cursor: pointer; font-size:0.95rem;" onclick="copyNoticeLink(${n.id}, '${n.title.replace(/'/g, "\\'")}')" title="Copy shareable link">
-                                        <i class="fas fa-link"></i>
-                                    </span>
-                                    ` : ''}
                                     ${currentUser.role === 'cr' ? `
-                                    <span style="color: #DC2626; cursor: pointer; font-size:0.95rem;" onclick="deleteNoticeItem(${n.id})">
+                                    <span style="color: #DC2626; cursor: pointer; font-size:0.95rem;" onclick="deleteNoticeItem('${n.id}')">
                                         <i class="fas fa-trash"></i>
                                     </span>
                                     ` : ''}
                                 </div>
                             </div>
                             <h3 style="margin-bottom: 8px; font-size: 1.3rem;">${n.title}</h3>
-                            <p class="text-secondary" style="margin-bottom: 20px;">${n.description}</p>
+                            <p class="text-secondary" style="margin-bottom: 20px;">${n.description || n.desc || ''}</p>
                             ${n.link ? `
-                            <div style="margin-bottom: 20px;">
+                            <div class="notice-link-container" style="margin-bottom: 20px;">
                                 <a href="${n.link}" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #10B981, #34D399); color: white; padding: 10px 20px; border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
                                     <i class="fas fa-external-link-alt"></i> Open Link
                                 </a>
                             </div>
                             ` : ''}
                             <div class="flex" style="justify-content: space-between;">
-                                <div class="flex">
+                                <div class="flex flex-row">
                                     <i class="far fa-bell" style="color: #94A3B8;"></i>
                                     <span style="color: #94A3B8; font-size:0.9rem;">Posted by CR</span>
                                 </div>
-                                ${!n.read ? `
-                                    <span style="color: #4F46E5; cursor: pointer; font-size:0.95rem;" class="mark-read" data-id="${n.id}">
+                                ${!isNoticeReadByUser(n.id) ? `
+                                    <span style="color: #4F46E5; cursor: pointer; font-size:0.95rem;" class="mark-read mark-read-mobile" data-id="${n.id}">
                                         <i class="far fa-check-circle"></i> Mark as read
                                     </span>
                                 ` : ''}
@@ -2679,11 +3074,10 @@
             // Add mark as read functionality
             document.querySelectorAll('.mark-read').forEach(el => {
                 el.addEventListener('click', function () {
-                    const noticeId = parseInt(this.getAttribute('data-id'));
-                    const notice = notices.find(n => n.id === noticeId);
-                    if (notice) {
-                        notice.read = true;
-                        localStorage.setItem('notices', JSON.stringify(notices));
+                    const noticeId = this.getAttribute('data-id');
+                    console.log('Marking notice as read, ID:', noticeId);
+                    if (noticeId) {
+                        markNoticeAsRead(noticeId);
                         renderNotices();
                     }
                 });
@@ -2751,24 +3145,19 @@
                 ` : ''}
                 
                 <!-- Subject Filter Pills -->
-                <div class="flex" style="gap: 12px; flex-wrap: wrap; margin-bottom: 32px;">
-                    <span class="subject-pill subject-all" onclick="setNoteFilter('all')" style="padding: 10px 24px; background: ${currentNoteFilter === 'all' ? 'linear-gradient(135deg, #6366F1, #8B5CF6)' : 'white'}; color: ${currentNoteFilter === 'all' ? 'white' : '#6366F1'}; border: 2px solid #6366F1; cursor: pointer; border-radius: 30px;">All</span>
+                <div class="flex flex-row filter-container" style="gap: 8px; flex-wrap: wrap; margin-bottom: 32px; flex-direction: row;">
+                    <span class="subject-pill subject-all" onclick="setNoteFilter('all')" style="padding: 8px 16px; background: ${currentNoteFilter === 'all' ? 'linear-gradient(135deg, #6366F1, #8B5CF6)' : 'white'}; color: ${currentNoteFilter === 'all' ? 'white' : '#6366F1'}; border: 2px solid #6366F1; cursor: pointer; border-radius: 30px; font-size: 0.85rem;">All</span>
                     ${subjectCounts.map(s => `
-                        <span class="subject-pill subject-${getCourseTitle(s.name).toLowerCase()}" onclick="setNoteFilter('${s.name}')" style="padding: 10px 24px; background: ${currentNoteFilter === s.name ? 'linear-gradient(135deg, #6366F1, #8B5CF6)' : 'white'}; color: ${currentNoteFilter === s.name ? 'white' : '#6366F1'}; border: 2px solid #6366F1; cursor: pointer; border-radius: 30px;">${getCourseTitle(s.name)} <span style="opacity: 0.8; font-size: 0.8em;">(${s.count})</span></span>
+                        <span class="subject-pill subject-${getCourseTitle(s.name).toLowerCase()}" onclick="setNoteFilter('${s.name}')" style="padding: 8px 16px; background: ${currentNoteFilter === s.name ? 'linear-gradient(135deg, #6366F1, #8B5CF6)' : 'white'}; color: ${currentNoteFilter === s.name ? 'white' : '#6366F1'}; border: 2px solid #6366F1; cursor: pointer; border-radius: 30px; font-size: 0.85rem;">${getCourseTitle(s.name)} <span style="opacity: 0.8; font-size: 0.8em;">(${s.count})</span></span>
                     `).join('')}
                 </div>
                 
-                <!-- Search Bar -->
-                <div class="search-bar" style="width: 100%; max-width: 400px; margin-bottom: 32px; background: white;">
-                    <i class="fas fa-search"></i>
-                    <input placeholder="Search notes...">
-                </div>
             </div>
             
             <!-- Notes Grid - Modern Card Layout -->
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;">
-                ${(currentNoteFilter === 'all' ? notes : notes.filter(n => n.subject === currentNoteFilter)).map((n, index) => `
-                    <div style="background: white; border-radius: 24px; overflow: hidden; border: 1px solid #F1F5F9; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-8px)';this.style.boxShadow='0 20px 40px rgba(0,0,0,0.1)'">
+                ${((currentNoteFilter === 'all' ? notes : notes.filter(n => n.subject === currentNoteFilter)).filter(n => !currentNoteSearch || n.title.toLowerCase().includes(currentNoteSearch) || (n.description && n.description.toLowerCase().includes(currentNoteSearch)))).map((n, index) => `
+                    <div id="note-${n.id}" style="background: white; border-radius: 24px; overflow: hidden; border: 1px solid #F1F5F9; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-8px)';this.style.boxShadow='0 20px 40px rgba(0,0,0,0.1)'">
                         <div style="background: linear-gradient(135deg, ${getCardColor(index).start}, ${getCardColor(index).end}); padding: 28px; color: white; position: relative;">
                             <div style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.25); padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; backdrop-filter: blur(4px);">
                                 ${getCourseTitle(n.subject)}
@@ -2777,7 +3166,7 @@
                         </div>
                         
                         <div style="padding: 24px;">
-                            <p class="text-secondary" style="font-size:0.95rem; margin-bottom: 20px; line-height: 1.6;">${n.desc}</p>
+                            <p class="text-secondary" style="font-size:0.95rem; margin-bottom: 20px; line-height: 1.6;">${n.desc || n.description || ''}</p>
                             
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                                 <div style="background: linear-gradient(135deg, #EEF2FF, #E0E7FF); padding: 14px; border-radius: 14px;">
@@ -2832,7 +3221,7 @@
                             <span class="text-secondary" style="font-size: 0.9rem;">${isCR ? 'Currently active' : 'Enable to manage class'}</span>
                         </div>
                     </div>
-                    <div onclick="if(!${isCR}) { document.getElementById('authModal').style.display='flex'; } else { currentUser.role='student'; renderMembers(); }" style="width: 60px; height: 32px; background: ${isCR ? 'linear-gradient(135deg, #6366F1, #8B5CF6)' : '#E2E8F0'}; border-radius: 20px; position: relative; cursor: pointer; transition: all 0.3s;">
+                    <div onclick="if(!${isCR}) { document.getElementById('authModal').style.display='flex'; } else { currentUser.role='student'; localStorage.setItem('crMode', 'false'); renderMembers(); }" style="width: 60px; height: 32px; background: ${isCR ? 'linear-gradient(135deg, #6366F1, #8B5CF6)' : '#E2E8F0'}; border-radius: 20px; position: relative; cursor: pointer; transition: all 0.3s;">
                         <div style="width: 26px; height: 26px; background: white; border-radius: 50%; position: absolute; top: 3px; ${isCR ? 'right: 3px' : 'left: 3px'}; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
                     </div>
                 </div>
@@ -2849,7 +3238,7 @@
                     </div>
                     <div style="display: flex; gap: 12px;">
                         <button onclick="document.getElementById('authModal').style.display='none'" style="flex: 1; padding: 14px; border: 1px solid #E2E8F0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;">Cancel</button>
-                        <button onclick="const p=document.getElementById('crPassword').value; if(p==='admin123'){currentUser.role='cr';document.getElementById('authModal').style.display='none';document.getElementById('passwordError').style.display='none';renderMembers();}else{document.getElementById('passwordError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">Verify</button>
+                        <button onclick="const p=document.getElementById('crPassword').value; if(p==='admin123'){currentUser.role='cr';localStorage.setItem('crMode', 'true');document.getElementById('authModal').style.display='none';document.getElementById('passwordError').style.display='none';renderMembers();}else{document.getElementById('passwordError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">Verify</button>
                     </div>
                 </div>
             </div>
@@ -3331,7 +3720,7 @@
                     </div>
                     <div style="display: flex; gap: 12px;">
                         <button onclick="document.getElementById('crPasswordInput').value='';currentPage='dashboard';renderDashboard();" style="flex: 1; padding: 14px; border: 1px solid #E2E8F0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;">Cancel</button>
-                        <button onclick="const p=document.getElementById('crPasswordInput').value; if(p==='admin123'){currentUser.role='cr';document.getElementById('crAuthError').style.display='none';renderCRMode();showToast({type:'success',title:'Welcome!',message:'CR mode enabled'});}else{document.getElementById('crAuthError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">
+                        <button onclick="const p=document.getElementById('crPasswordInput').value; if(p==='admin123'){currentUser.role='cr';localStorage.setItem('crMode', 'true');document.getElementById('crAuthError').style.display='none';renderCRMode();showToast({type:'success',title:'Welcome!',message:'CR mode enabled'});}else{document.getElementById('crAuthError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">
                             <i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i>Login
                         </button>
                     </div>
@@ -3453,6 +3842,25 @@
         // Initialize logo on page load
         window.addEventListener('DOMContentLoaded', function () {
             updateLogoDisplay();
+
+            // Update header based on login status
+            const container = document.getElementById('authButtonContainer');
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                const user = JSON.parse(savedUser);
+                if (user.studentId) {
+                    const initial = user.name ? user.name.charAt(0).toUpperCase() : 'U';
+                    container.innerHTML = `
+                        <div class="notification-bell" onclick="currentPage='notices';renderNotices();">
+                            <i class="far fa-bell"></i>
+                            <span class="notification-badge" id="unreadBadge" style="display: none;">0</span>
+                        </div>
+                        <div onclick="showProfileModal()"
+                            style="width: 44px; height: 44px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; cursor: pointer; margin-right: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
+                            ${initial}
+                        </div>`;;
+                }
+            }
         });
 
         // Toggle online link for room input
@@ -3949,7 +4357,8 @@
                     localStorage.setItem('classTests', JSON.stringify(testSchedule));
                     overlay.style.display = 'none';
                     alert(window.editingTestIndex !== null ? 'CT updated!' : 'CT scheduled: ' + s + ' on ' + d);
-                    renderClassTests();
+                    // Refresh the current page
+                    location.reload();
                 } else {
                     alert('Please fill all fields');
                 }
@@ -3980,7 +4389,8 @@
                     notices = existingNotices;
                     overlay.style.display = 'none';
                     alert('Notice posted: ' + title);
-                    renderMembers();
+                    // Save to Supabase and refresh
+                    saveNotices().then(() => location.reload());
                 } else {
                     alert('Please fill all fields');
                 }
@@ -4027,7 +4437,8 @@
                     notes = existingNotes;
                     overlay.style.display = 'none';
                     alert(window.editingNoteIndex !== null ? 'Note updated!' : 'Note added: ' + title);
-                    renderNotes();
+                    // Save to Supabase and refresh
+                    saveNotes().then(() => location.reload());
                 } else {
                     alert('Please fill all required fields');
                 }
@@ -4042,19 +4453,47 @@
                     const v = document.getElementById('slot' + i + 'venueModal');
                     const o = document.getElementById('slot' + i + 'onlineModal');
                     if (s && s.value) {
-                        routine.push({
+                        const slotData = {
                             subject: s.value,
                             time: t ? t.value : '--:--',
                             venue: v ? v.value : '',
                             online: o ? o.checked : false
-                        });
+                        };
+                        routine.push(slotData);
+
+                        // If online class is checked and venue has a link, auto-generate a notice
+                        if (slotData.online && slotData.venue && (slotData.venue.includes('http') || slotData.venue.includes('meet') || slotData.venue.includes('zoom'))) {
+                            const teacherMatch = s.value.match(/\(([^)]+)\)$/);
+                            const teacherName = teacherMatch ? teacherMatch[1] : 'your teacher';
+                            const subjectName = s.value.replace(/\s*\([^)]+\)$/, '').replace(/^[A-Za-z0-9]+\s*-\s*/, '');
+
+                            const newNotice = {
+                                id: Date.now() + i, // Unique ID
+                                title: subjectName + ' Online Class',
+                                priority: 'high',
+                                description: 'An online class in ' + subjectName + ' will be held today at ' + slotData.time + ' by ' + teacherName,
+                                link: slotData.venue,
+                                expiry: '',
+                                pinned: true,
+                                read: false,
+                                created_at: new Date().toISOString()
+                            };
+                            const existingNotices = JSON.parse(localStorage.getItem('notices')) || [];
+                            existingNotices.unshift(newNotice);
+                            localStorage.setItem('notices', JSON.stringify(existingNotices));
+                            notices = existingNotices;
+                            console.log('Auto-created notice for online class:', newNotice);
+                        }
                     }
                 }
+                todaysRoutine = routine;
                 localStorage.setItem('todaysRoutine', JSON.stringify(routine));
-                loadTodaysRoutine();
                 document.getElementById('modalOverlay').style.display = 'none';
                 alert('Routine posted for today!');
-                renderDashboard();
+                // Save to Supabase and refresh
+                saveTodaysRoutine().then(() => {
+                    saveNotices().then(() => location.reload());
+                });
             });
 
             overlay.onclick = (e) => {
@@ -4156,21 +4595,306 @@
         // Initialize
         initializeData().then(() => {
             renderDashboard();
-        });
 
-        // Check unread notices
-        if (notices.some(n => !n.read)) {
-            const badge = document.getElementById('unreadBadge');
-            const dot = document.getElementById('unreadDot');
-            if (badge) {
-                const unreadCount = notices.filter(n => !n.read).length;
-                badge.style.display = 'flex';
-                badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-                if (dot) dot.style.display = 'block';
+            // Check unread notices and update badge
+            if (notices.some(n => !isNoticeReadByUser(n.id))) {
+                const badge = document.getElementById('unreadBadge');
+                const dot = document.getElementById('unreadDot');
+                if (badge) {
+                    const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
+                    badge.style.display = 'flex';
+                    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                    if (dot) dot.style.display = 'block';
+                }
+            } else {
+                const dot = document.getElementById('unreadDot');
+                if (dot) dot.style.display = 'none';
             }
-        } else {
-            const dot = document.getElementById('unreadDot');
-            if (dot) dot.style.display = 'none';
+        });
+    </script>
+
+    <!-- Modern Auth Modal (Login/Signup) -->
+    <div id="authModal"
+        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); z-index: 2000; align-items: center; justify-content: center; animation: fadeIn 0.3s ease;">
+        <div
+            style="background: white; padding: 48px; border-radius: 32px; max-width: 420px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: slideUp 0.4s ease; position: relative;">
+            <div id="loginFormContainer">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div
+                        style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 24px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4); animation: pulse 2s infinite;">
+                        <i class="fas fa-graduation-cap" style="color: white; font-size: 2rem;"></i>
+                    </div>
+                    <h2
+                        style="margin: 0 0 8px 0; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; font-size: 1.8rem;">
+                        Welcome Back!</h2>
+                    <p class="text-secondary">Sign in to continue</p>
+                </div>
+                <input type="text" id="loginStudentId" placeholder="Student ID"
+                    style="width: 100%; padding: 16px 20px; border: 2px solid #E2E8F0; border-radius: 16px; font-size: 1rem; margin-bottom: 16px; box-sizing: border-box; transition: all 0.3s;">
+                <input type="password" id="loginPassword" placeholder="Password"
+                    style="width: 100%; padding: 16px 20px; border: 2px solid #E2E8F0; border-radius: 16px; font-size: 1rem; margin-bottom: 16px; box-sizing: border-box; transition: all 0.3s;">
+                <div id="loginError"
+                    style="display: none; background: #FEF2F2; border: 1px solid #EF4444; color: #DC2626; padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; font-size: 0.9rem; text-align: center;">
+                </div>
+                <button onclick="handleLogin()"
+                    style="width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 16px; cursor: pointer; font-size: 1.1rem; font-weight: 600; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4); transition: all 0.3s; margin-bottom: 16px;">Sign
+                    In</button>
+                <p style="text-align: center; color: #6B7280;">
+                    Don't have an account?
+                    <span onclick="showSignup()" style="color: #667eea; font-weight: 600; cursor: pointer;">Sign
+                        Up</span>
+                </p>
+            </div>
+
+            <div id="signupFormContainer" style="display: none;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <div
+                        style="width: 80px; height: 80px; background: linear-gradient(135deg, #f093fb, #f5576c); border-radius: 24px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4); animation: pulse 2s infinite;">
+                        <i class="fas fa-user-plus" style="color: white; font-size: 2rem;"></i>
+                    </div>
+                    <h2
+                        style="margin: 0 0 8px 0; background: linear-gradient(135deg, #f093fb, #f5576c); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; font-size: 1.8rem;">
+                        Create Account</h2>
+                    <p class="text-secondary">Join your class</p>
+                </div>
+                <input type="text" id="signupFullName" placeholder="Full Name"
+                    style="width: 100%; padding: 16px 20px; border: 2px solid #E2E8F0; border-radius: 16px; font-size: 1rem; margin-bottom: 12px; box-sizing: border-box;">
+                <input type="text" id="signupStudentId" placeholder="Student ID (unique)"
+                    style="width: 100%; padding: 16px 20px; border: 2px solid #E2E8F0; border-radius: 16px; font-size: 1rem; margin-bottom: 12px; box-sizing: border-box;">
+                <input type="password" id="signupPassword" placeholder="Password"
+                    style="width: 100%; padding: 16px 20px; border: 2px solid #E2E8F0; border-radius: 16px; font-size: 1rem; margin-bottom: 12px; box-sizing: border-box;">
+                <input type="password" id="signupConfirmPassword" placeholder="Confirm Password"
+                    style="width: 100%; padding: 16px 20px; border: 2px solid #E2E8F0; border-radius: 16px; font-size: 1rem; margin-bottom: 16px; box-sizing: border-box;">
+                <div id="signupError"
+                    style="display: none; background: #FEF2F2; border: 1px solid #EF4444; color: #DC2626; padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; font-size: 0.9rem; text-align: center;">
+                </div>
+                <button onclick="handleSignup()"
+                    style="width: 100%; padding: 16px; background: linear-gradient(135deg, #f093fb, #f5576c); color: white; border: none; border-radius: 16px; cursor: pointer; font-size: 1.1rem; font-weight: 600; box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4); transition: all 0.3s; margin-bottom: 16px;">Create
+                    Account</button>
+                <p style="text-align: center; color: #6B7280;">
+                    Already have an account?
+                    <span onclick="showLogin()" style="color: #f5576c; font-weight: 600; cursor: pointer;">Sign
+                        In</span>
+                </p>
+            </div>
+
+            <button onclick="document.getElementById('authModal').style.display='none'"
+                style="position: absolute; top: 16px; right: 16px; background: #F1F5F9; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1rem; color: #64748B;">✕</button>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal"
+        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); z-index: 2000; align-items: center; justify-content: center; animation: fadeIn 0.3s ease;">
+        <div
+            style="background: white; padding: 40px; border-radius: 24px; max-width: 420px; width: 90%; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <button onclick="document.getElementById('profileModal').style.display='none'"
+                style="position: absolute; top: 16px; right: 16px; background: #F1F5F9; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1rem; color: #64748B;">✕</button>
+
+            <div style="text-align: center; margin-bottom: 24px;">
+                <div
+                    style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);">
+                    <i class="fas fa-user" style="color: white; font-size: 2rem;"></i>
+                </div>
+                <h2 style="margin: 0 0 8px 0; color: #1E293B; font-weight: 700; font-size: 1.5rem;">My Profile</h2>
+                <p class="text-secondary">Manage your account</p>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <label
+                    style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.9rem;">Student
+                    ID</label>
+                <input type="text" id="profileStudentId" readonly
+                    style="width: 100%; padding: 14px 16px; border: 2px solid #E2E8F0; border-radius: 12px; font-size: 1rem; background: #F8FAFC; color: #64748B; cursor: not-allowed; box-sizing: border-box;">
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <label
+                    style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.9rem;">Full
+                    Name</label>
+                <input type="text" id="profileFullName"
+                    style="width: 100%; padding: 14px 16px; border: 2px solid #E2E8F0; border-radius: 12px; font-size: 1rem; box-sizing: border-box;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label
+                    style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.9rem;">New
+                    Password</label>
+                <input type="password" id="profileNewPassword" placeholder="Enter new password"
+                    style="width: 100%; padding: 14px 16px; border: 2px solid #E2E8F0; border-radius: 12px; font-size: 1rem; box-sizing: border-box;">
+            </div>
+
+            <div id="profileError"
+                style="display: none; background: #FEF2F2; border: 1px solid #EF4444; color: #DC2626; padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; font-size: 0.9rem; text-align: center;">
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+                <button onclick="document.getElementById('profileModal').style.display='none'"
+                    style="flex: 1; padding: 14px; border: 1px solid #E2E8F0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;">Cancel</button>
+                <button onclick="updateProfile()"
+                    style="flex: 1; padding: 14px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);">Save
+                    Changes</button>
+            </div>
+
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
+                <button onclick="logout()"
+                    style="width: 100%; padding: 14px; background: #FEF2F2; border: 1px solid #EF4444; border-radius: 12px; cursor: pointer; font-weight: 600; color: #DC2626;">
+                    <i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i>Logout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showSignup() {
+            document.getElementById('loginFormContainer').style.display = 'none';
+            document.getElementById('signupFormContainer').style.display = 'block';
+        }
+        function showLogin() {
+            document.getElementById('signupFormContainer').style.display = 'none';
+            document.getElementById('loginFormContainer').style.display = 'block';
+        }
+        async function handleLogin() {
+            const studentId = document.getElementById('loginStudentId').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            if (!studentId || !password) {
+                errorDiv.textContent = 'Please fill in all fields';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const users = await supabaseClient.getUserByStudentId(studentId);
+                if (users && users.length > 0 && users[0].password_hash === password) {
+                    currentUser = {
+                        id: users[0].id,
+                        name: users[0].full_name,
+                        studentId: users[0].student_id,
+                        role: 'student',
+                        avatar: users[0].full_name.charAt(0).toUpperCase()
+                    };
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    document.getElementById('authModal').style.display = 'none';
+                    showToast({ type: 'success', title: 'Welcome back!', message: 'Logged in successfully' });
+                    location.reload();
+                } else {
+                    errorDiv.textContent = 'Invalid Student ID or Password';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (e) {
+                errorDiv.textContent = 'Login failed. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        }
+        async function handleSignup() {
+            const fullName = document.getElementById('signupFullName').value;
+            const studentId = document.getElementById('signupStudentId').value;
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('signupConfirmPassword').value;
+            const errorDiv = document.getElementById('signupError');
+
+            if (!fullName || !studentId || !password || !confirmPassword) {
+                errorDiv.textContent = 'Please fill in all fields';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                errorDiv.textContent = 'Passwords do not match';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const existing = await supabaseClient.getUserByStudentId(studentId);
+                if (existing && existing.length > 0) {
+                    errorDiv.textContent = 'Student ID already registered';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                const newUser = await supabaseClient.createUser({
+                    student_id: studentId,
+                    full_name: fullName,
+                    password_hash: password
+                });
+
+                currentUser = {
+                    id: newUser.id,
+                    name: fullName,
+                    studentId: studentId,
+                    role: 'student',
+                    avatar: fullName.charAt(0).toUpperCase()
+                };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                document.getElementById('authModal').style.display = 'none';
+                showToast({ type: 'success', title: 'Welcome!', message: 'Account created successfully' });
+                location.reload();
+            } catch (e) {
+                errorDiv.textContent = 'Signup failed. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // Profile Modal Functions
+        function showProfileModal() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (!savedUser) return;
+
+            const user = JSON.parse(savedUser);
+            document.getElementById('profileStudentId').value = user.studentId || '';
+            document.getElementById('profileFullName').value = user.name || '';
+            document.getElementById('profileNewPassword').value = '';
+            document.getElementById('profileError').style.display = 'none';
+            document.getElementById('profileModal').style.display = 'flex';
+        }
+
+        async function updateProfile() {
+            const newName = document.getElementById('profileFullName').value.trim();
+            const newPassword = document.getElementById('profileNewPassword').value;
+            const errorDiv = document.getElementById('profileError');
+
+            if (!newName) {
+                errorDiv.textContent = 'Please enter your name';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const savedUser = localStorage.getItem('currentUser');
+            if (!savedUser) return;
+
+            const user = JSON.parse(savedUser);
+
+            // Always update localStorage first
+            user.name = newName;
+            localStorage.setItem('currentUser', JSON.stringify(user));
+
+            // Try to update in Supabase if available
+            if (USE_SUPABASE && user.id) {
+                try {
+                    const updates = { full_name: newName };
+                    if (newPassword) {
+                        updates.password_hash = newPassword;
+                    }
+                    await supabaseClient.updateUser(user.id, updates);
+                } catch (e) {
+                    console.log('Supabase update failed, using localStorage only');
+                }
+            }
+
+            document.getElementById('profileModal').style.display = 'none';
+            showToast({ type: 'success', title: 'Updated!', message: 'Profile updated successfully' });
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('crMode');
+            document.getElementById('profileModal').style.display = 'none';
+            showToast({ type: 'info', title: 'Logged out', message: 'You have been logged out' });
+            setTimeout(() => location.reload(), 1000);
         }
     </script>
 </body>
