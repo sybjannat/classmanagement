@@ -4521,11 +4521,11 @@
         }
 
         // Initialize logo on page load
-        window.addEventListener('DOMContentLoaded', function () {
-            updateLogoDisplay();
-
-            // Update header based on login status
+        // Update header based on login status
+        function updateHeaderAuth() {
             const container = document.getElementById('authButtonContainer');
+            if (!container) return;
+
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
                 const user = JSON.parse(savedUser);
@@ -4539,9 +4539,14 @@
                         <div onclick="showProfileModal()"
                             style="width: 44px; height: 44px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; cursor: pointer; margin-right: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
                             ${initial}
-                        </div>`;;
+                        </div>`;
                 }
             }
+        }
+
+        window.addEventListener('DOMContentLoaded', function () {
+            updateLogoDisplay();
+            updateHeaderAuth();
         });
 
         // Toggle online link for room input
@@ -5342,6 +5347,9 @@
                         appContainer.style.display = 'flex';
                     }
 
+                    // Update header to show user avatar
+                    updateHeaderAuth();
+
                     // User is logged in - render dashboard
                     renderDashboard();
 
@@ -5542,6 +5550,9 @@
                         appContainer.style.display = 'flex';
                     }
 
+                    // Update header to show user avatar
+                    updateHeaderAuth();
+
                     // Load data and render dashboard
                     initializeData().then(() => {
                         lastDataHash.notices = getDataHash(notices);
@@ -5616,6 +5627,9 @@
                 if (appContainer) {
                     appContainer.style.display = 'flex';
                 }
+
+                // Update header to show user avatar
+                updateHeaderAuth();
 
                 // Load data and render dashboard
                 initializeData().then(() => {
