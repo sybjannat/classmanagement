@@ -2071,12 +2071,17 @@
         }
 
         // ---------- High Alert Notification System ----------
-        let notificationPermission = Notification.permission;
+        let notificationPermission = Notification ? Notification.permission : 'denied';
 
         // Request notification permission
         async function requestNotificationPermission() {
-            if ('Notification' in window && Notification.permission === 'default') {
-                notificationPermission = await Notification.requestPermission();
+            try {
+                if ('Notification' in window && Notification.permission === 'default') {
+                    notificationPermission = await Notification.requestPermission();
+                }
+            } catch (e) {
+                // Notification API not supported or error - ignore on iPad/unsupported browsers
+                notificationPermission = 'denied';
             }
         }
 
@@ -2121,15 +2126,19 @@
             }
 
             // 2. Push Notification
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('🔔 Class Test Alert!', {
-                    body: message,
-                    icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
-                    badge: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
-                    tag: 'class-test-alert',
-                    requireInteraction: true,
-                    vibrate: [500, 200, 500, 200, 1000]
-                });
+            try {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('🔔 Class Test Alert!', {
+                        body: message,
+                        icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
+                        badge: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
+                        tag: 'class-test-alert',
+                        requireInteraction: true,
+                        vibrate: [500, 200, 500, 200, 1000]
+                    });
+                }
+            } catch (e) {
+                // Notification not supported
             }
 
             // 3. Play sound
@@ -2240,16 +2249,20 @@
             }
 
             // 2. Push Notification
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('🚨 URGENT: ' + notice.title, {
-                    body: notice.description || 'High priority notice from CR',
-                    icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
-                    badge: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
-                    tag: 'high-priority-notice',
-                    requireInteraction: true,
-                    urgency: 'critical',
-                    vibrate: [1000, 300, 1000, 300, 1000, 300, 2000]
-                });
+            try {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('🚨 URGENT: ' + notice.title, {
+                        body: notice.description || 'High priority notice from CR',
+                        icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
+                        badge: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
+                        tag: 'high-priority-notice',
+                        requireInteraction: true,
+                        urgency: 'critical',
+                        vibrate: [1000, 300, 1000, 300, 1000, 300, 2000]
+                    });
+                }
+            } catch (e) {
+                // Notification not supported
             }
 
             // 3. Play strong sound
