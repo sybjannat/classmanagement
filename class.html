@@ -1947,7 +1947,7 @@
 
             // Clear all data from Supabase
             async clearAllData() {
-                const tables = ['notice_read_status', 'subjects', 'notes', 'notices', 'class_tests', 'todays_routine', 'members', 'website_settings'];
+                const tables = ['notice_read_status', 'subjects', 'notes', 'notices', 'class_tests', 'todays_routine', 'members', 'website_settings', 'users'];
                 for (const table of tables) {
                     try {
                         // First get all records
@@ -3448,7 +3448,7 @@
                     </div>
                     <div style="display: flex; gap: 12px;">
                         <button onclick="document.getElementById('authModal').style.display='none'" style="flex: 1; padding: 14px; border: 1px solid #E2E8F0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;">Cancel</button>
-                        <button onclick="const p=document.getElementById('crPassword').value; if(p===getCRPassword()){currentUser.role='cr';localStorage.setItem('crMode', 'true');document.getElementById('authModal').style.display='none';document.getElementById('passwordError').style.display='none';renderMembers();}else{document.getElementById('passwordError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">Verify</button>
+                        <button onclick="const p=document.getElementById('crPassword').value; if(p==='admin123'){currentUser.role='cr';localStorage.setItem('crMode', 'true');document.getElementById('authModal').style.display='none';document.getElementById('passwordError').style.display='none';renderMembers();}else{document.getElementById('passwordError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">Verify</button>
                     </div>
                 </div>
             </div>
@@ -3918,11 +3918,8 @@
         }
 
         function renderCRMode() {
-            // Check if user is super admin - they can access CR settings directly
-            const isSuperAdmin = currentUser.role === 'super_admin';
-
-            // Check if user is authenticated as CR (or is super admin)
-            if (currentUser.role !== 'cr' && !isSuperAdmin) {
+            // Check if user is authenticated as CR
+            if (currentUser.role !== 'cr') {
                 document.getElementById('mainContent').innerHTML = `
                 <div style="margin-bottom: 32px;">
                     <h1 class="satoshi" style="font-size: 2rem; margin-bottom: 8px;">CR Mode</h1>
@@ -3941,18 +3938,13 @@
                     </div>
                     <div style="display: flex; gap: 12px;">
                         <button onclick="document.getElementById('crPasswordInput').value='';currentPage='dashboard';renderDashboard();" style="flex: 1; padding: 14px; border: 1px solid #E2E8F0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;">Cancel</button>
-                        <button onclick="const p=document.getElementById('crPasswordInput').value; if(p===getCRPassword()){currentUser.role='cr';localStorage.setItem('crMode', 'true');document.getElementById('crAuthError').style.display='none';renderCRMode();showToast({type:'success',title:'Welcome!',message:'CR mode enabled'});}else{document.getElementById('crAuthError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">
+                        <button onclick="const p=document.getElementById('crPasswordInput').value; if(p==='admin123'){currentUser.role='cr';localStorage.setItem('crMode', 'true');document.getElementById('crAuthError').style.display='none';renderCRMode();showToast({type:'success',title:'Welcome!',message:'CR mode enabled'});}else{document.getElementById('crAuthError').style.display='block';}" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;">
                             <i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i>Login
                         </button>
                     </div>
                 </div>
                 `;
                 return;
-            }
-
-            // If super admin but not in CR mode, set them to CR mode
-            if (isSuperAdmin && currentUser.role !== 'cr') {
-                currentUser.role = 'cr';
             }
 
             const iconOptions = [
@@ -4026,88 +4018,12 @@
                     <span class="satoshi" style="font-size: 1.5rem; font-weight: 700; color: white;">${websiteSettings.websiteName}</span>
                 </div>
             </div>
-            
-            ${currentUser.role === 'super_admin' ? `
-            <!-- Change CR Password Card - Super Admin Only -->
-            <div style="background: white; border-radius: 28px; padding: 32px; border: 1px solid #F1F5F9;">
-                <h3 style="font-size: 1.3rem; margin-bottom: 20px; color: #1E293B;"><i class="fas fa-key" style="margin-right: 10px; color: #6366F1;"></i>Change CR Password</h3>
-                
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #374151;">Current CR Password</label>
-                    <input type="password" id="currentCRPassword" placeholder="Enter current CR password"
-                        style="width: 100%; padding: 14px 18px; border: 2px solid #E2E8F0; border-radius: 14px; font-size: 1rem; transition: all 0.2s; box-sizing: border-box;">
-                </div>
-
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #374151;">New CR Password</label>
-                    <input type="password" id="newCRPassword" placeholder="Enter new CR password (min 4 characters)"
-                        style="width: 100%; padding: 14px 18px; border: 2px solid #E2E8F0; border-radius: 14px; font-size: 1rem; transition: all 0.2s; box-sizing: border-box;">
-                </div>
-
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #374151;">Confirm New CR Password</label>
-                    <input type="password" id="confirmCRPassword" placeholder="Confirm new CR password"
-                        style="width: 100%; padding: 14px 18px; border: 2px solid #E2E8F0; border-radius: 14px; font-size: 1rem; transition: all 0.2s; box-sizing: border-box;">
-                </div>
-
-                <div id="crPasswordChangeError" style="display: none; background: #FEF2F2; border: 1px solid #EF4444; color: #DC2626; padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; font-size: 0.9rem; text-align: center;"></div>
-                <div id="crPasswordChangeSuccess" style="display: none; background: #F0FDF4; border: 1px solid #22C55E; color: #16A34A; padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; font-size: 0.9rem; text-align: center;">Password changed successfully!</div>
-
-                <button onclick="changeCRPassword()" 
-                    style="padding: 14px 32px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-                    <i class="fas fa-lock" style="margin-right: 8px;"></i>Change Password
-                </button>
-            </div>
-            ` : ''}
             `;
         }
 
         function selectLogoIcon(icon) {
             websiteSettings.logoIcon = icon;
             renderCRMode();
-        }
-
-        // CR Password Management
-        function getCRPassword() {
-            return localStorage.getItem('crPassword') || 'admin123';
-        }
-
-        function setCRPassword(newPassword) {
-            localStorage.setItem('crPassword', newPassword);
-            showToast({ type: 'success', title: 'Password Updated', message: 'CR password has been changed' });
-        }
-
-        function changeCRPassword() {
-            const currentPassword = document.getElementById('currentCRPassword').value;
-            const newPassword = document.getElementById('newCRPassword').value;
-            const confirmPassword = document.getElementById('confirmCRPassword').value;
-            const errorDiv = document.getElementById('crPasswordChangeError');
-
-            if (currentPassword !== getCRPassword()) {
-                errorDiv.textContent = 'Current CR password is incorrect';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            if (!newPassword || newPassword.length < 4) {
-                errorDiv.textContent = 'New password must be at least 4 characters';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            if (newPassword !== confirmPassword) {
-                errorDiv.textContent = 'New passwords do not match';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            setCRPassword(newPassword);
-            document.getElementById('currentCRPassword').value = '';
-            document.getElementById('newCRPassword').value = '';
-            document.getElementById('confirmCRPassword').value = '';
-            errorDiv.style.display = 'none';
-            document.getElementById('crPasswordChangeSuccess').style.display = 'block';
-            setTimeout(() => document.getElementById('crPasswordChangeSuccess').style.display = 'none', 3000);
         }
 
         function saveWebsiteSettings() {
@@ -5082,15 +4998,11 @@
             try {
                 const users = await supabaseClient.getUserByStudentId(studentId);
                 if (users && users.length > 0 && users[0].password_hash === password) {
-                    // Hardcoded super admin student ID
-                    const SUPER_ADMIN_ID = '1610483189';
-                    const isSuperAdmin = studentId === SUPER_ADMIN_ID;
-
                     currentUser = {
                         id: users[0].id,
                         name: users[0].full_name,
                         studentId: users[0].student_id,
-                        role: isSuperAdmin ? 'super_admin' : 'student',
+                        role: 'student',
                         avatar: users[0].full_name.charAt(0).toUpperCase()
                     };
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -5140,15 +5052,11 @@
                     password_hash: password
                 });
 
-                // Hardcoded super admin student ID
-                const SUPER_ADMIN_ID = '1610483189';
-                const isSuperAdmin = studentId === SUPER_ADMIN_ID;
-
                 currentUser = {
                     id: newUser.id,
                     name: fullName,
                     studentId: studentId,
-                    role: isSuperAdmin ? 'super_admin' : 'student',
+                    role: 'student',
                     avatar: fullName.charAt(0).toUpperCase()
                 };
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
