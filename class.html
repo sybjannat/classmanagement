@@ -2268,9 +2268,10 @@
 
         // Function to send push notification with vibration and sound for live updates
         let audioContextInstance = null;
+        let audioInitialized = false;
 
         function sendPushNotification(title, body, icon = null) {
-            // 1. Browser Push Notification
+            // 1. Browser Push Notification (works without user gesture)
             if ('Notification' in window && Notification.permission === 'granted') {
                 try {
                     const notification = new Notification(title, {
@@ -2278,8 +2279,7 @@
                         icon: icon || 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
                         badge: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
                         tag: 'live-update',
-                        requireInteraction: true,
-                        vibrate: [500, 200, 500, 200, 500] // Strong vibration pattern
+                        requireInteraction: true
                     });
 
                     notification.onclick = function () {
@@ -2291,17 +2291,16 @@
                 }
             }
 
-            // 2. Device Vibration (strong vibration pattern) - wrapped in try/catch
-            if ('vibrate' in navigator) {
-                try {
-                    navigator.vibrate([500, 200, 500, 200, 500, 200, 500]);
-                } catch (e) {
-                    console.log('Vibration error:', e);
+            // 2. Device Vibration and Sound - only if user has interacted with page
+            // (Browser security requires user gesture for these)
+            if (audioInitialized) {
+                // Try vibration if allowed
+                if ('vibrate' in navigator) {
+                    try { navigator.vibrate([500, 200, 500, 200, 500]); } catch (e) { }
                 }
+                // Play sound
+                playNotificationSound();
             }
-
-            // 3. Play notification sound
-            playNotificationSound();
         }
 
         // Function to play notification sound
@@ -2357,18 +2356,23 @@
             }
         }
 
-        // Initialize audio context on first user interaction (call this on login)
+        // Initialize audio context on first user interaction
         function initAudioOnInteraction() {
+            if (audioInitialized) return;
             try {
                 if (!audioContextInstance) {
                     audioContextInstance = new (window.AudioContext || window.webkitAudioContext)();
                 }
                 if (audioContextInstance.state === 'suspended') {
-                    audioContextInstance.resume();
+                    audioContextInstance.resume().then(() => {
+                        audioInitialized = true;
+                    }).catch(e => { });
+                } else {
+                    audioInitialized = true;
                 }
                 // Test vibration
                 if ('vibrate' in navigator) {
-                    navigator.vibrate(50);
+                    try { navigator.vibrate(50); } catch (e) { }
                 }
             } catch (e) {
                 console.log('Audio init error:', e);
