@@ -1341,6 +1341,105 @@
             }
         }
 
+        /* iPad specific styles (768px - 1024px) */
+        @media (min-width: 768px) and (max-width: 900px) {
+            .sidebar {
+                display: none !important;
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
+                padding: 20px !important;
+            }
+        }
+
+        @media (min-width: 901px) and (max-width: 1024px) {
+            .sidebar {
+                width: 80px !important;
+            }
+
+            .sidebar .logo span,
+            .sidebar nav .nav-item span,
+            .sidebar .role-badge {
+                display: none;
+            }
+
+            .sidebar .logo {
+                justify-content: center;
+            }
+
+            .main-content {
+                margin-left: 80px !important;
+            }
+        }
+
+        .main-content {
+            padding: 24px 32px !important;
+            margin-left: 80px !important;
+            width: calc(100% - 80px) !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        .dashboard-grid {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
+        }
+
+        .stats-grid>div {
+            padding: 20px !important;
+            border-radius: 20px !important;
+        }
+
+        .stats-grid>div>div:first-child {
+            font-size: 2rem !important;
+        }
+
+        .stats-grid>div i {
+            font-size: 1.8rem !important;
+            margin-bottom: 6px !important;
+            display: block !important;
+        }
+
+        /* Reduce padding on cards for iPad */
+        [style*="border-radius: 30px"][style*="padding: 30px"] {
+            padding: 20px !important;
+            border-radius: 24px !important;
+        }
+
+        /* Make grid items more compact */
+        [style*="display: grid"][style*="gap: 24px"] {
+            gap: 16px !important;
+        }
+
+        /* Adjust CT Archive table for iPad */
+        [style*="CT Archive"] table {
+            font-size: 0.85rem !important;
+        }
+
+        [style*="CT Archive"] th,
+        [style*="CT Archive"] td {
+            padding: 12px 8px !important;
+        }
+
+        /* iPad Pro specific styles (1024px - 1366px) */
+        @media (min-width: 1025px) and (max-width: 1366px) {
+            .main-content {
+                padding: 28px 36px !important;
+                max-width: 100% !important;
+            }
+
+            .dashboard-grid {
+                gap: 24px !important;
+            }
+        }
+
         /* Large mobile and below (max-width: 768px) */
         @media (max-width: 768px) {
             .sidebar {
@@ -2482,18 +2581,52 @@
                     // Load user's read notice status
                     await loadUserReadNotices();
                     notes = notesData || [];
+
+                    // If Supabase returns empty data but localStorage has data, preserve local data
+                    const localNotes = JSON.parse(localStorage.getItem('notes')) || [];
+                    const localNotices = JSON.parse(localStorage.getItem('notices')) || [];
+                    const localRoutine = JSON.parse(localStorage.getItem('todaysRoutine')) || [];
+                    const localTests = JSON.parse(localStorage.getItem('classTests')) || [];
+
+                    if (notes.length === 0 && localNotes.length > 0) {
+                        console.log('Supabase returned empty notes, preserving local data');
+                        notes = localNotes;
+                    }
+                    if (notices.length === 0 && localNotices.length > 0) {
+                        console.log('Supabase returned empty notices, preserving local data');
+                        notices = localNotices;
+                    }
+                    if (todaysRoutine.length === 0 && localRoutine.length > 0) {
+                        console.log('Supabase returned empty routine, preserving local data');
+                        todaysRoutine = localRoutine;
+                    }
+
                     // Convert Supabase subject objects to string format for localStorage
                     subjects = (subjectsData || []).map(s => {
                         let str = s.name || '';
                         if (s.teacher) str += ' (' + s.teacher + ')';
                         return str;
                     });
+
+                    // If subjects also empty, load from localStorage
+                    if (subjects.length === 0) {
+                        subjects = JSON.parse(localStorage.getItem('subjects')) || [];
+                    }
                     todaysRoutine = routineData || [];
                     classTests = testsData || [];
+
+                    // If Supabase returned empty tests but local has data, preserve local data
+                    if (classTests.length === 0 && localTests.length > 0) {
+                        console.log('Supabase returned empty tests, preserving local data');
+                        classTests = localTests;
+                    }
+
                     websiteSettings = settingsData || { logoIcon: 'fa-scroll', websiteName: 'YE-48' };
                     members = membersData || [];
 
                     // Save to localStorage in string format
+                    localStorage.setItem('notices', JSON.stringify(notices));
+                    localStorage.setItem('notes', JSON.stringify(notes));
                     localStorage.setItem('subjects', JSON.stringify(subjects));
                     localStorage.setItem('todaysRoutine', JSON.stringify(todaysRoutine));
                     localStorage.setItem('classTests', JSON.stringify(classTests));
@@ -2552,79 +2685,104 @@
 
                 // Check if notices changed
                 if (getDataHash(newNotices) !== lastDataHash.notices) {
-                    const newNoticeCount = newNotices.length - notices.length;
-                    notices = newNotices;
-                    lastDataHash.notices = getDataHash(newNotices);
-                    localStorage.setItem('notices', JSON.stringify(notices));
-                    dataChanged = true;
-                    updateType = 'notice';
-                    console.log('New notices detected from Supabase!');
+                    // Only update if Supabase has data, or if local is also empty
+                    if (newNotices.length > 0 || notices.length === 0) {
+                        const newNoticeCount = newNotices.length - notices.length;
+                        notices = newNotices;
+                        lastDataHash.notices = getDataHash(newNotices);
+                        localStorage.setItem('notices', JSON.stringify(notices));
+                        dataChanged = true;
+                        updateType = 'notice';
+                        console.log('New notices detected from Supabase!');
 
-                    // Send notification for new notices
-                    if (newNoticeCount > 0 && newNotices[0]) {
-                        sendPushNotification(
-                            '📢 New Notice Posted!',
-                            newNotices[0].title + (newNoticeCount > 1 ? ` (+${newNoticeCount - 1} more)` : '')
-                        );
+                        // Send notification for new notices
+                        if (newNoticeCount > 0 && newNotices[0]) {
+                            sendPushNotification(
+                                '📢 New Notice Posted!',
+                                newNotices[0].title + (newNoticeCount > 1 ? ` (+${newNoticeCount - 1} more)` : '')
+                            );
+                        }
+                    } else {
+                        console.log('Supabase returned empty notices, preserving local data');
+                        lastDataHash.notices = getDataHash(notices);
                     }
                 }
 
                 // Check if notes changed
                 if (getDataHash(newNotes) !== lastDataHash.notes) {
-                    const newNotesCount = newNotes.length - notes.length;
-                    notes = newNotes;
-                    lastDataHash.notes = getDataHash(newNotes);
-                    localStorage.setItem('notes', JSON.stringify(notes));
-                    dataChanged = true;
-                    updateType = 'notes';
-                    console.log('Notes changed from Supabase!');
+                    // Only update if Supabase has data, or if local is also empty
+                    if (newNotes.length > 0 || notes.length === 0) {
+                        const newNotesCount = newNotes.length - notes.length;
+                        notes = newNotes;
+                        lastDataHash.notes = getDataHash(newNotes);
+                        localStorage.setItem('notes', JSON.stringify(notes));
+                        dataChanged = true;
+                        updateType = 'notes';
+                        console.log('Notes changed from Supabase!');
 
-                    // Send notification for notes changes
-                    if (newNotesCount > 0) {
-                        sendPushNotification(
-                            '📚 New Study Notes Added!',
-                            newNotesCount + ' new note' + (newNotesCount > 1 ? 's' : '') + ' available'
-                        );
-                    } else if (newNotesCount < 0) {
-                        sendPushNotification(
-                            '📚 Study Notes Updated',
-                            Math.abs(newNotesCount) + ' note' + (Math.abs(newNotesCount) > 1 ? 's' : '') + ' removed'
-                        );
+                        // Send notification for notes changes
+                        if (newNotesCount > 0) {
+                            sendPushNotification(
+                                '📚 New Study Notes Added!',
+                                newNotesCount + ' new note' + (newNotesCount > 1 ? 's' : '') + ' available'
+                            );
+                        } else if (newNotesCount < 0) {
+                            sendPushNotification(
+                                '📚 Study Notes Updated',
+                                Math.abs(newNotesCount) + ' note' + (Math.abs(newNotesCount) > 1 ? 's' : '') + ' removed'
+                            );
+                        }
+                    } else {
+                        console.log('Supabase returned empty notes, preserving local data');
+                        // Update hash to prevent repeated notifications
+                        lastDataHash.notes = getDataHash(notes);
                     }
                 }
 
                 // Check if routine changed
                 if (getDataHash(newRoutine) !== lastDataHash.todaysRoutine) {
-                    todaysRoutine = newRoutine;
-                    lastDataHash.todaysRoutine = getDataHash(newRoutine);
-                    localStorage.setItem('todaysRoutine', JSON.stringify(todaysRoutine));
-                    dataChanged = true;
-                    updateType = 'routine';
-                    console.log('New routine detected from Supabase!');
+                    // Only update if Supabase has data, or if local is also empty
+                    if (newRoutine.length > 0 || todaysRoutine.length === 0) {
+                        todaysRoutine = newRoutine;
+                        lastDataHash.todaysRoutine = getDataHash(newRoutine);
+                        localStorage.setItem('todaysRoutine', JSON.stringify(todaysRoutine));
+                        dataChanged = true;
+                        updateType = 'routine';
+                        console.log('New routine detected from Supabase!');
 
-                    // Send notification for routine update
-                    sendPushNotification(
-                        '📅 Today\'s Routine Updated!',
-                        'Check the updated class schedule for today'
-                    );
+                        // Send notification for routine update
+                        sendPushNotification(
+                            '📅 Today\'s Routine Updated!',
+                            'Check the updated class schedule for today'
+                        );
+                    } else {
+                        console.log('Supabase returned empty routine, preserving local data');
+                        lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
+                    }
                 }
 
                 // Check if class tests changed
                 if (getDataHash(newTests) !== lastDataHash.classTests) {
-                    const newTestsCount = newTests.length - classTests.length;
-                    classTests = newTests;
-                    lastDataHash.classTests = getDataHash(newTests);
-                    localStorage.setItem('classTests', JSON.stringify(classTests));
-                    dataChanged = true;
-                    updateType = 'classtest';
-                    console.log('New class tests detected from Supabase!');
+                    // Only update if Supabase has data, or if local is also empty
+                    if (newTests.length > 0 || classTests.length === 0) {
+                        const newTestsCount = newTests.length - classTests.length;
+                        classTests = newTests;
+                        lastDataHash.classTests = getDataHash(newTests);
+                        localStorage.setItem('classTests', JSON.stringify(classTests));
+                        dataChanged = true;
+                        updateType = 'classtest';
+                        console.log('New class tests detected from Supabase!');
 
-                    // Send notification for new class tests
-                    if (newTestsCount > 0) {
-                        sendPushNotification(
-                            '📝 New Class Test Scheduled!',
-                            newTestsCount + ' new class test' + (newTestsCount > 1 ? 's' : '') + ' added'
-                        );
+                        // Send notification for new class tests
+                        if (newTestsCount > 0) {
+                            sendPushNotification(
+                                '📝 New Class Test Scheduled!',
+                                newTestsCount + ' new class test' + (newTestsCount > 1 ? 's' : '') + ' added'
+                            );
+                        }
+                    } else {
+                        console.log('Supabase returned empty tests, preserving local data');
+                        lastDataHash.classTests = getDataHash(classTests);
                     }
                 }
 
@@ -2858,6 +3016,16 @@
         localStorage.setItem('visitorData', JSON.stringify(visitorData));
         const visitorsToday = visitorData.count;
 
+        // Calculate upcoming CTs (tests that haven't passed)
+        const classTestsData = JSON.parse(localStorage.getItem('classTests')) || [];
+        const todayCT = new Date();
+        todayCT.setHours(0, 0, 0, 0);
+        const upcomingCTs = classTestsData.filter(test => {
+            const testDate = new Date(test.date.split('/').reverse().join('-'));
+            testDate.setHours(0, 0, 0, 0);
+            return testDate >= todayCT;
+        }).length;
+
         // Filter state
         let currentNoteFilter = 'all';
         let currentNoteSearch = '';
@@ -2948,7 +3116,7 @@
                 document.getElementById('ctDateModal').value = test.date;
                 document.getElementById('ctTimeModal').value = test.time;
                 document.getElementById('ctVenueModal').value = test.venue;
-                document.getElementById('ctSyllabusModal').value = test.chapters;
+                document.getElementById('ctSyllabusModal').value = test.chapter || test.chapters || '';
                 // Change button text
                 const btn = document.querySelector('#ctForm button[type=\"submit\"]');
                 if (btn) btn.innerHTML = '<i class="fas fa-save"></i> Update CT';
@@ -3095,7 +3263,6 @@
             setTimeout(() => {
                 document.getElementById('noteSubjectModal').value = note.subject;
                 document.getElementById('noteTitleModal').value = note.title;
-                document.getElementById('noteDescModal').value = note.desc;
                 // Change button text
                 const btn = document.querySelector('#noteForm button[type=\"submit\"]');
                 if (btn) btn.innerHTML = '<i class="fas fa-save"></i> Update Note';
@@ -3115,19 +3282,55 @@
             if (d && t && v && sy) {
                 const testSchedule = JSON.parse(localStorage.getItem('classTests')) || [];
 
+                const isNewTest = window.editingTestIndex === undefined || window.editingTestIndex === null;
+
                 if (window.editingTestIndex !== undefined && window.editingTestIndex !== null) {
                     // Update existing
-                    testSchedule[window.editingTestIndex] = { subject: s, date: d, time: t, venue: v, chapters: sy };
+                    testSchedule[window.editingTestIndex] = { subject: s, date: d, time: t, venue: v, chapter: sy };
                     window.editingTestIndex = null;
                 } else {
                     // Add new
-                    testSchedule.push({ subject: s, date: d, time: t, venue: v, chapters: sy });
+                    testSchedule.push({ subject: s, date: d, time: t, venue: v, chapter: sy });
                 }
 
                 localStorage.setItem('classTests', JSON.stringify(testSchedule));
                 // Update global classTests array and save to Supabase
                 classTests = testSchedule;
                 saveClassTests();
+
+                // Auto-generate high priority notice for new CT
+                if (isNewTest) {
+                    // Extract teacher name from subject (format: "SubjectName (TeacherName)")
+                    let teacherName = '';
+                    const teacherMatch = s.match(/\(([^)]+)\)/);
+                    if (teacherMatch) {
+                        teacherName = teacherMatch[1];
+                    } else {
+                        teacherName = s;
+                    }
+                    const subjectName = s.replace(/\s*\([^)]*\)/, '').trim();
+
+                    // Get course title for display
+                    const courseTitle = getCourseTitle(s) || subjectName;
+
+                    const noticeTitle = courseTitle + ' CT';
+                    const noticeDesc = teacherName + "'s " + courseTitle + ' CT will be held on ' + d + ', ' + t.split(' - ')[0] + '. CT topic ' + sy;
+
+                    // Add notice
+                    const newNotice = {
+                        id: Date.now(),
+                        title: noticeTitle,
+                        description: noticeDesc,
+                        priority: 'high',
+                        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                        link: '',
+                        created_at: new Date().toISOString()
+                    };
+                    notices.unshift(newNotice);
+                    localStorage.setItem('notices', JSON.stringify(notices));
+                    saveNotices();
+                }
+
                 document.getElementById('ctModal').style.display = 'none';
                 alert(window.editingTestIndex !== null ? 'CT updated!' : 'CT scheduled: ' + s + ' on ' + d);
                 // Refresh the current page
@@ -3141,9 +3344,22 @@
         function saveNote() {
             const subject = document.getElementById('noteSubjectModal').value;
             const title = document.getElementById('noteTitleModal').value;
-            const desc = document.getElementById('noteDescModal').value;
 
-            if (subject && title && desc) {
+            // Auto-generate description: "{TEACHER FULL NAME} shared a note on [NOTE TITLE] in the study notes tab"
+            // Extract teacher name from subject (format: "SubjectName (TeacherName)" or just "SubjectName")
+            let teacherName = '';
+            const teacherMatch = subject.match(/\(([^)]+)\)/);
+            if (teacherMatch) {
+                teacherName = teacherMatch[1];
+            } else {
+                // If no teacher in parentheses, use the subject name
+                teacherName = subject;
+            }
+            const desc = teacherName + ' shared a note on ' + title + ' in the study notes tab';
+
+            if (subject && title) {
+                const isNewNote = window.editingNoteIndex === undefined || window.editingNoteIndex === null;
+
                 if (window.editingNoteIndex !== undefined && window.editingNoteIndex !== null) {
                     // Update existing
                     notes[window.editingNoteIndex] = { ...notes[window.editingNoteIndex], subject, title, desc };
@@ -3163,6 +3379,28 @@
                 }
 
                 localStorage.setItem('notes', JSON.stringify(notes));
+
+                // Auto-generate notice for new note
+                if (isNewNote) {
+                    const subjectName = subject.replace(/\s*\([^)]*\)/, '').trim();
+                    const courseTitle = getCourseTitle(subject) || subjectName;
+                    const noticeTitle = 'Class note on ' + courseTitle;
+                    const noticeDesc = teacherName + ' shared a note on ' + title;
+
+                    const newNotice = {
+                        id: Date.now(),
+                        title: noticeTitle,
+                        description: noticeDesc,
+                        priority: 'high',
+                        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                        link: '',
+                        created_at: new Date().toISOString()
+                    };
+                    notices.unshift(newNotice);
+                    localStorage.setItem('notices', JSON.stringify(notices));
+                    saveNotices();
+                }
+
                 document.getElementById('modalOverlay').style.display = 'none';
                 alert('Note saved!');
                 renderNotes();
@@ -3208,10 +3446,10 @@
                     <div style="font-size: 3rem; font-weight: 700;">${todaysRoutine.length}</div>
                     <div style="font-size: 1rem; opacity: 0.9;">Today's Classes</div>
                 </div>
-                <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); padding: 24px; border-radius: 24px; color: white; box-shadow: 0 10px 30px rgba(250, 112, 154, 0.3); animation: fadeInUp 0.5s ease forwards; animation-delay: 0.4s; opacity: 0; text-align: center;">
-                    <i class="fas fa-users" style="font-size: 2.5rem; margin-bottom: 10px; display: block;"></i>
-                    <div style="font-size: 3rem; font-weight: 700;">${visitorsToday}</div>
-                    <div style="font-size: 1rem; opacity: 0.9;">Visitors Today</div>
+                <div style="background: linear-gradient(135deg, #EF4444 0%, #F97316 100%); padding: 24px; border-radius: 24px; color: white; box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3); animation: fadeInUp 0.5s ease forwards; animation-delay: 0.4s; opacity: 0; text-align: center;">
+                    <i class="fas fa-file-alt" style="font-size: 2.5rem; margin-bottom: 10px; display: block;"></i>
+                    <div style="font-size: 3rem; font-weight: 700;">${upcomingCTs}</div>
+                    <div style="font-size: 1rem; opacity: 0.9;">Upcoming CTs</div>
                 </div>
             </div>
             
@@ -3229,7 +3467,7 @@
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 16px;">
                             ${todaysRoutine.length === 0 ? `
-                            <div style="text-align: center; padding: 40px 20px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-radius: 20px;">
+                            <div style="text-align: center; padding: 40px 20px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 150px;">
                                 <i class="fas fa-calendar-plus" style="font-size: 3rem; color: #94A3B8; margin-bottom: 12px;"></i>
                                 <span style="color: #94A3B8; font-size: 1.1rem;">No routine posted yet</span>
                             </div>
@@ -3336,7 +3574,7 @@
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 14px;">
                             ${notices.length === 0 ? `
-                            <div style="text-align: center; padding: 40px 20px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-radius: 20px;">
+                            <div style="text-align: center; padding: 40px 20px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 150px;">
                                 <i class="fas fa-bullhorn" style="font-size: 3rem; color: #94A3B8; margin-bottom: 12px;"></i>
                                 <span style="color: #94A3B8; font-size: 1.1rem;">No notices yet</span>
                             </div>
@@ -3363,7 +3601,7 @@
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 12px;">
                             ${notes.length === 0 ? `
-                            <div style="text-align: center; padding: 30px 20px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-radius: 20px;">
+                            <div style="text-align: center; padding: 30px 20px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 120px;">
                                 <i class="fas fa-file-alt" style="font-size: 2.5rem; color: #94A3B8; margin-bottom: 8px;"></i>
                                 <span style="color: #94A3B8; font-size: 1rem;">No notes yet</span>
                             </div>
@@ -3420,14 +3658,37 @@
             // Load test schedule from localStorage or initialize as empty
             let testSchedule = JSON.parse(localStorage.getItem('classTests')) || [];
 
-            // Sort by upcoming date (nearest date first)
-            testSchedule.sort((a, b) => {
-                const dateA = new Date(a.date.split('/').reverse().join('-'));
-                const dateB = new Date(b.date.split('/').reverse().join('-'));
-                return dateA - dateB;
-            });
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-            // Show empty state if no tests scheduled
+            // Separate upcoming and past tests
+            const upcomingTests = testSchedule
+                .map((test, idx) => ({ ...test, originalIndex: idx }))
+                .filter(test => {
+                    const testDate = new Date(test.date.split('/').reverse().join('-'));
+                    testDate.setHours(0, 0, 0, 0);
+                    return testDate >= today;
+                })
+                .sort((a, b) => {
+                    const dateA = new Date(a.date.split('/').reverse().join('-'));
+                    const dateB = new Date(b.date.split('/').reverse().join('-'));
+                    return dateA - dateB;
+                });
+
+            const pastTests = testSchedule
+                .map((test, idx) => ({ ...test, originalIndex: idx }))
+                .filter(test => {
+                    const testDate = new Date(test.date.split('/').reverse().join('-'));
+                    testDate.setHours(0, 0, 0, 0);
+                    return testDate < today;
+                })
+                .sort((a, b) => {
+                    const dateA = new Date(a.date.split('/').reverse().join('-'));
+                    const dateB = new Date(b.date.split('/').reverse().join('-'));
+                    return dateB - dateA; // Most recent first
+                });
+
+            // Show empty state if no tests at all
             if (testSchedule.length === 0) {
                 document.getElementById('mainContent').innerHTML = `
                 <div style="margin-bottom: 32px;">
@@ -3455,11 +3716,10 @@
                     <p class="text-secondary">Upcoming class tests and exam schedule</p>
                 </div>
 
+                ${upcomingTests.length > 0 ? `
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;">
-                    ${testSchedule.map((test, index) => {
+                    ${upcomingTests.map((test, index) => {
                 const testDate = new Date(test.date.split('/').reverse().join('-'));
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
                 const daysUntil = Math.ceil((testDate - today) / (1000 * 60 * 60 * 24));
                 const isUpcoming = daysUntil >= 0 && daysUntil <= 3;
                 return `
@@ -3496,21 +3756,73 @@
                                     <div style="background: linear-gradient(135deg, #EDE9FE, #DDD6FE); padding: 16px; border-radius: 16px;">
                                         <i class="fas fa-book" style="color: #7C3AED; font-size: 1.2rem; margin-bottom: 8px; display: block;"></i>
                                         <span style="color: #64748B; font-size: 0.75rem; display: block; margin-bottom: 4px;">SYLLABUS</span>
-                                        <span style="font-weight: 700; color: #1E293B;">${test.chapters}</span>
+                                        <span style="font-weight: 700; color: #1E293B;">${test.chapter || test.chapters || 'N/A'}</span>
                                     </div>
                                 </div>
                                 ${currentUser.role === 'cr' ? `
                                 <div style="padding-top: 20px; display: flex; gap: 12px;">
-                                    <button onclick="editTest(${index})" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;"><i class="fas fa-edit"></i> Edit</button>
-                                    <button onclick="deleteTest(${index})" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #DC2626, #EF4444); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;"><i class="fas fa-trash"></i> Delete</button>
+                                    <button onclick="editTest(${test.originalIndex})" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;"><i class="fas fa-edit"></i> Edit</button>
+                                    <button onclick="deleteTest(${test.originalIndex})" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #DC2626, #EF4444); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;"><i class="fas fa-trash"></i> Delete</button>
                                 </div>
                                 ` : ''}
                             </div>
                         </div>
                     `}).join('')}
                 </div>
+                ` : ''}
+
+                ${pastTests.length > 0 ? `
+                <div style="margin-top: 48px; background: white; border-radius: 24px; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+                    <h2 style="font-size: 1.5rem; margin-bottom: 24px; color: #1E293B;">
+                        <i class="fas fa-archive" style="margin-right: 10px; color: #64748B;"></i>CT Archive
+                    </h2>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #E2E8F0;">
+                                    <th style="text-align: left; padding: 14px 16px; color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">SUBJECT NAME</th>
+                                    <th style="text-align: left; padding: 14px 16px; color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">CT SYLLABUS</th>
+                                    <th style="text-align: left; padding: 14px 16px; color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">HELD DATE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${pastTests.map(test => `
+                                <tr style="border-bottom: 1px solid #F1F5F9;">
+                                    <td style="padding: 16px; color: #1E293B; font-weight: 600;">${getCourseTitle(test.subject)}</td>
+                                    <td style="padding: 16px; color: #64748B;">${test.chapter || test.chapters || 'N/A'}</td>
+                                    <td style="padding: 16px; color: #64748B;">${test.date}</td>
+                                </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                ` : ''}
             </div>
         `;
+        }
+
+        // ---------- UTILITY FUNCTIONS ----------
+
+        // Helper function to get time ago string
+        function getTimeAgo(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const diffHour = Math.floor(diffMin / 60);
+            const diffDay = Math.floor(diffHour / 24);
+            const diffWeek = Math.floor(diffDay / 7);
+            const diffMonth = Math.floor(diffDay / 30);
+
+            if (diffMin < 1) return 'just now';
+            if (diffMin < 60) return diffMin + ' min ago';
+            if (diffHour < 24) return diffHour + ' hour' + (diffHour > 1 ? 's' : '') + ' ago';
+            if (diffDay < 7) return diffDay + ' day' + (diffDay > 1 ? 's' : '') + ' ago';
+            if (diffWeek < 4) return diffWeek + ' week' + (diffWeek > 1 ? 's' : '') + ' ago';
+            return diffMonth + ' month' + (diffMonth > 1 ? 's' : '') + ' ago';
         }
 
         function renderNotices() {
@@ -3580,7 +3892,10 @@
                             
                             <!-- Card body -->
                             <div style="padding: 24px;">
-                                <h3 style="margin-bottom: 12px; font-size: 1.25rem; font-weight: 700; color: #1E293B; line-height: 1.4;">${n.title}</h3>
+                                <div class="flex" style="justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #1E293B; line-height: 1.4; flex: 1;">${n.title}</h3>
+                                    <span style="color: #94A3B8; font-size: 0.8rem; white-space: nowrap; margin-left: 12px;">${getTimeAgo(n.created_at)}</span>
+                                </div>
                                 <p style="color: #64748B; margin-bottom: 20px; line-height: 1.6; font-size: 0.95rem;">${n.description || n.desc || ''}</p>
                                 
                                 ${n.link ? `
@@ -3641,7 +3956,6 @@
                     <div class="flex" style="justify-content: space-between; align-items: center; margin-bottom: 24px;">
                         <div>
                             <h1 class="satoshi" style="font-size: 2rem;">Study Notes</h1>
-                            <span style="background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${currentTerm}</span>
                         </div>
                         ${currentUser.role === 'cr' ? `
                             <button class="gradient-bg" style="padding: 12px 28px; border-radius: 40px; border: none; display: flex; align-items: center; gap: 8px;" id="addNoteBtn">
@@ -3667,7 +3981,6 @@
                 <div class="flex" style="justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <div>
                         <h1 class="satoshi" style="font-size: 2rem;">Study Notes</h1>
-                        <span style="background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">${currentTerm}</span>
                     </div>
                     ${currentUser.role === 'cr' ? `
                         <button class="gradient-bg" style="padding: 12px 28px; border-radius: 40px; border: none; display: flex; align-items: center; gap: 8px;" id="addNoteBtn">
@@ -3806,14 +4119,6 @@
                         </div>
                         <h4 style="margin-bottom: 4px;">Post Notice</h4>
                         <span class="text-secondary" style="font-size: 0.9rem;">Create class announcements</span>
-                    </div>
-                    
-                    <div onclick="openModal('term')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s; text-align: center;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
-                        <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #8B5CF6, #A78BFA); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-                            <i class="fas fa-graduation-cap" style="color: white; font-size: 1.2rem;"></i>
-                        </div>
-                        <h4 style="margin-bottom: 4px;">Promote to Next Term</h4>
-                        <span class="text-secondary" style="font-size: 0.9rem;">Move to Level 4 Term 1</span>
                     </div>
                     
                     <div onclick="openModal('subject')" style="background: white; border-radius: 20px; padding: 24px; border: 1px solid #F1F5F9; cursor: pointer; transition: all 0.2s; text-align: center;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,0.1)'">
@@ -4117,7 +4422,7 @@
                     
                     <div style="display: flex; gap: 12px; padding: 0 24px 24px;">
                         <button onclick="document.getElementById('routineModal').style.display='none'" style="flex: 1; padding: 14px; border: 1px solid #E2E8F0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #64748B; transition: all 0.2s;">Cancel</button>
-                        <button onclick="const routine=[];for(let i=1;i<=9;i++){const s=document.getElementById('slot'+i+'subject');const t=document.getElementById('slot'+i+'time');const v=document.getElementById('slot'+i+'venue');const o=document.getElementById('slot'+i+'online');if(s&&s.value){routine.push({subject:s.value,time:t?t.value:'--:--',venue:v?v.value:'',online:o?o.checked:false})}}localStorage.setItem('todaysRoutine',JSON.stringify(routine));loadTodaysRoutine();document.getElementById('routineModal').style.display='none';alert('Routine posted for today!');renderDashboard();" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #F97316, #FB923C); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4); transition: all 0.2s;">Post Routine</button>
+                        <button onclick="const routine=[];for(let i=1;i<=9;i++){const s=document.getElementById('slot'+i+'subject');const t=document.getElementById('slot'+i+'time');const v=document.getElementById('slot'+i+'venue');const o=document.getElementById('slot'+i+'online');if(s&&s.value){routine.push({subject:s.value,time:t?t.value:'--:--',venue:v?v.value:'',online:o?o.checked:false})}}localStorage.setItem('todaysRoutine',JSON.stringify(routine));if(routine.length>0){const newNotice={id:Date.now(),title:"Today's Routine Posted",description:"CR posted today's routine, check it.",priority:'high',date:new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),link:'',created_at:new Date().toISOString()};const existingNotices=JSON.parse(localStorage.getItem('notices'))||[];existingNotices.unshift(newNotice);localStorage.setItem('notices',JSON.stringify(existingNotices));notices=existingNotices}loadTodaysRoutine();document.getElementById('routineModal').style.display='none';saveTodaysRoutine().then(()=>{saveNotices().then(()=>{alert('Routine posted for today!');renderDashboard()})});" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #F97316, #FB923C); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4); transition: all 0.2s;">Post Routine</button>
                     </div>
                 </div>
             </div>
@@ -4155,31 +4460,6 @@
                         <div style="display: flex; gap: 12px;">
                             <button onclick="document.getElementById('ctModal').style.display='none'" style="flex: 1; padding: 12px; border: 2px solid #FEE2E2; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;">Cancel</button>
                             <button onclick="saveClassTest()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #EF4444, #F87171); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);">Add CT</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Term Promotion Modal -->
-            <div id="termModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
-                <div style="background: white; padding: 0; border-radius: 24px; max-width: 450px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden;">
-                    <div style="background: linear-gradient(135deg, #8B5CF6, #A78BFA); padding: 24px 32px; text-align: center;">
-                        <h3 style="margin-bottom: 4px; color: white; font-size: 1.4rem;">Promote to Next Term</h3>
-                        <p style="color: rgba(255,255,255,0.9); font-size: 0.9rem;">Move to next level</p>
-                    </div>
-                    <div style="padding: 28px 32px; text-align: center;">
-                        <div style="background: #F5F3FF; padding: 20px; border-radius: 16px; margin-bottom: 20px;">
-                            <p class="text-secondary" style="margin-bottom: 8px; font-size: 0.9rem;">Current Term</p>
-                            <p style="color: #7C3AED; font-weight: 700; font-size: 1.2rem;">Level 3 Term 2</p>
-                        </div>
-                        <div style="background: #ECFDF5; padding: 20px; border-radius: 16px; margin-bottom: 20px;">
-                            <p class="text-secondary" style="margin-bottom: 8px; font-size: 0.9rem;">Next Term</p>
-                            <p style="color: #059669; font-weight: 700; font-size: 1.2rem;">Level 4 Term 1</p>
-                        </div>
-                        <p class="text-secondary" style="text-align: center; margin-bottom: 24px; font-size: 0.9rem;">This will archive all current notes to 'Previous Terms' and reset for the new term.</p>
-                        <div style="display: flex; gap: 12px;">
-                            <button onclick="document.getElementById('termModal').style.display='none'" style="flex: 1; padding: 12px; border: 2px solid #EDE9FE; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;">Cancel</button>
-                            <button onclick="currentTerm='Level 4 Term 1'; archivedTerms.push('Level 3 Term 2'); document.getElementById('termModal').style.display='none'; alert('Successfully promoted to Level 4 Term 1!'); renderMembers();" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #8B5CF6, #A78BFA); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);">Promote Now</button>
                         </div>
                     </div>
                 </div>
@@ -4458,13 +4738,7 @@
                             <input type="text" id="noteTitleModal" placeholder="e.g., Chapter 1 Summary" 
                                 style="width: 100%; padding: 12px 16px; border: 2px solid #D1FAE5; border-radius: 12px; background: white; color: #1E293B; font-size: 0.95rem; outline: none; box-sizing: border-box;">
                         </div>
-                        
-                        <div>
-                            <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.9rem;">Short Description</label>
-                            <textarea id="noteDescModal" placeholder="Brief description of the note content" rows="3"
-                                style="width: 100%; padding: 12px 16px; border: 2px solid #D1FAE5; border-radius: 12px; background: white; color: #1E293B; font-size: 0.95rem; outline: none; resize: none; box-sizing: border-box;"></textarea>
-                        </div>
-                        
+
                         <div>
                             <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151; font-size: 0.9rem;">Share Link</label>
                             <input type="text" id="noteLinkModal" placeholder="Telegram or Google Drive link" 
@@ -4808,34 +5082,6 @@
                     </div>
                 </div>
             `;
-            } else if (type === 'term') {
-                inner.innerHTML = `
-                <div style="background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
-                    <div style="background: linear-gradient(135deg, #8B5CF6, #A78BFA); padding: 24px 32px; text-align: center;">
-                        <h2 style="margin-bottom: 4px; color: white; font-size: 1.4rem;">Promote to Next Term</h2>
-                        <p style="color: rgba(255,255,255,0.9); font-size: 0.9rem;">Move to next level</p>
-                    </div>
-                    <div style="padding: 28px 32px; text-align: center;">
-                        <div style="background: #F5F3FF; padding: 20px; border-radius: 16px; margin-bottom: 20px;">
-                            <p style="color: #6B7280; margin-bottom: 8px; font-size: 0.9rem;">Current Term</p>
-                            <p style="color: #7C3AED; font-weight: 700; font-size: 1.2rem;">Level 3 Term 2</p>
-                        </div>
-                        <div style="background: #ECFDF5; padding: 20px; border-radius: 16px; margin-bottom: 20px;">
-                            <p style="color: #6B7280; margin-bottom: 8px; font-size: 0.9rem;">Next Term</p>
-                            <p style="color: #059669; font-weight: 700; font-size: 1.2rem;">Level 4 Term 1</p>
-                        </div>
-                        <p style="color: #6B7280; text-align: center; margin-bottom: 24px; font-size: 0.9rem;">This will archive all current notes to 'Previous Terms' and reset for the new term.</p>
-                        <div style="display: flex; gap: 12px;">
-                            <button type="button" style="flex: 1; padding: 12px; border: 2px solid #EDE9FE; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;" id="closeModal">
-                                Cancel
-                            </button>
-                            <button type="button" onclick="currentTerm='Level 4 Term 1'; archivedTerms.push('Level 3 Term 2'); document.getElementById('modalOverlay').style.display='none'; alert('Successfully promoted to Level 4 Term 1!'); renderMembers();" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #8B5CF6, #A78BFA); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);">
-                                Promote Now
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
             } else if (type === 'ct') {
                 inner.innerHTML = `
                 <div style="background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
@@ -4897,19 +5143,55 @@
                 if (d && t && v && sy) {
                     const testSchedule = JSON.parse(localStorage.getItem('classTests')) || [];
 
+                    const isNewTest = window.editingTestIndex === undefined || window.editingTestIndex === null;
+
                     if (window.editingTestIndex !== undefined && window.editingTestIndex !== null) {
                         // Update existing
-                        testSchedule[window.editingTestIndex] = { subject: s, date: d, time: t, venue: v, chapters: sy };
+                        testSchedule[window.editingTestIndex] = { subject: s, date: d, time: t, venue: v, chapter: sy };
                         window.editingTestIndex = null;
                     } else {
                         // Add new
-                        testSchedule.push({ subject: s, date: d, time: t, venue: v, chapters: sy });
+                        testSchedule.push({ subject: s, date: d, time: t, venue: v, chapter: sy });
                     }
 
                     localStorage.setItem('classTests', JSON.stringify(testSchedule));
                     // Update global classTests array and save to Supabase
                     classTests = testSchedule;
                     saveClassTests();
+
+                    // Auto-generate high priority notice for new CT
+                    if (isNewTest) {
+                        // Extract teacher name from subject (format: "SubjectName (TeacherName)")
+                        let teacherName = '';
+                        const teacherMatch = s.match(/\(([^)]+)\)/);
+                        if (teacherMatch) {
+                            teacherName = teacherMatch[1];
+                        } else {
+                            teacherName = s;
+                        }
+                        const subjectName = s.replace(/\s*\([^)]*\)/, '').trim();
+
+                        // Get course title for display
+                        const courseTitle = getCourseTitle(s) || subjectName;
+
+                        const noticeTitle = courseTitle + ' CT';
+                        const noticeDesc = teacherName + "'s " + courseTitle + ' CT will be held on ' + d + ', ' + t.split(' - ')[0] + '. CT topic ' + sy;
+
+                        // Add notice
+                        const newNotice = {
+                            id: Date.now(),
+                            title: noticeTitle,
+                            description: noticeDesc,
+                            priority: 'high',
+                            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                            link: '',
+                            created_at: new Date().toISOString()
+                        };
+                        notices.unshift(newNotice);
+                        localStorage.setItem('notices', JSON.stringify(notices));
+                        saveNotices();
+                    }
+
                     overlay.style.display = 'none';
                     alert(window.editingTestIndex !== null ? 'CT updated!' : 'CT scheduled: ' + s + ' on ' + d);
                     // Refresh the current page
@@ -4956,12 +5238,25 @@
                 e.preventDefault();
                 const subject = document.getElementById('noteSubjectModal').value;
                 const title = document.getElementById('noteTitleModal').value;
-                const desc = document.getElementById('noteDescModal').value;
                 const link = document.getElementById('noteLinkModal').value;
                 const type = document.getElementById('noteTypeModal') ? document.getElementById('noteTypeModal').value : 'telegram';
 
-                if (subject && title && desc) {
+                // Auto-generate description: "{TEACHER FULL NAME} shared a note on [NOTE TITLE] in the study notes tab"
+                // Extract teacher name from subject (format: "SubjectName (TeacherName)" or just "SubjectName")
+                let teacherName = '';
+                const teacherMatch = subject.match(/\(([^)]+)\)/);
+                if (teacherMatch) {
+                    teacherName = teacherMatch[1];
+                } else {
+                    // If no teacher in parentheses, use the subject name
+                    teacherName = subject;
+                }
+                const desc = teacherName + ' shared a note on ' + title + ' in the study notes tab';
+
+                if (subject && title) {
                     const existingNotes = JSON.parse(localStorage.getItem('notes')) || [];
+
+                    const isNewNote = window.editingNoteIndex === undefined || window.editingNoteIndex === null;
 
                     if (window.editingNoteIndex !== undefined && window.editingNoteIndex !== null) {
                         // Update existing note
@@ -4990,6 +5285,28 @@
 
                     localStorage.setItem('notes', JSON.stringify(existingNotes));
                     notes = existingNotes;
+
+                    // Auto-generate notice for new note
+                    if (isNewNote) {
+                        const subjectName = subject.replace(/\s*\([^)]*\)/, '').trim();
+                        const courseTitle = getCourseTitle(subject) || subjectName;
+                        const noticeTitle = 'Class note on ' + courseTitle;
+                        const noticeDesc = teacherName + ' shared a note on ' + title;
+
+                        const newNotice = {
+                            id: Date.now(),
+                            title: noticeTitle,
+                            description: noticeDesc,
+                            priority: 'high',
+                            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                            link: '',
+                            created_at: new Date().toISOString()
+                        };
+                        notices.unshift(newNotice);
+                        localStorage.setItem('notices', JSON.stringify(notices));
+                        saveNotices();
+                    }
+
                     overlay.style.display = 'none';
                     alert(window.editingNoteIndex !== null ? 'Note updated!' : 'Note added: ' + title);
                     // Save to Supabase and refresh
@@ -5043,6 +5360,24 @@
                 }
                 todaysRoutine = routine;
                 localStorage.setItem('todaysRoutine', JSON.stringify(routine));
+
+                // Auto-generate notice for routine post
+                if (routine.length > 0) {
+                    const newNotice = {
+                        id: Date.now(),
+                        title: "Today's Routine Posted",
+                        description: "CR posted today's routine, check it.",
+                        priority: 'high',
+                        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                        link: '',
+                        created_at: new Date().toISOString()
+                    };
+                    const existingNotices = JSON.parse(localStorage.getItem('notices')) || [];
+                    existingNotices.unshift(newNotice);
+                    localStorage.setItem('notices', JSON.stringify(existingNotices));
+                    notices = existingNotices;
+                }
+
                 document.getElementById('modalOverlay').style.display = 'none';
                 alert('Routine posted for today!');
                 // Save to Supabase and refresh
