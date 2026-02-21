@@ -5544,6 +5544,42 @@
             // Check if Supabase is available (check again dynamically)
             const isSupabaseNowAvailable = typeof supabaseClient !== 'undefined' && typeof isSupabaseConfigured !== 'undefined' && isSupabaseConfigured();
             console.log('Supabase check:', { supabaseClient: typeof supabaseClient, isSupabaseConfigured: typeof isSupabaseConfigured, isConfigured: isSupabaseConfigured ? isSupabaseConfigured() : false });
+
+            // TEMPORARY: Allow demo login for testing
+            if (studentId === 'demo' && password === 'demo123') {
+                currentUser = {
+                    id: 'demo-user',
+                    name: 'Demo User',
+                    studentId: 'demo',
+                    role: 'student',
+                    avatar: 'D'
+                };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                document.getElementById('authModal').style.display = 'none';
+                document.body.style.overflow = 'auto';
+
+                // Update header
+                const container = document.getElementById('authButtonContainer');
+                container.innerHTML = `
+                    <div class="notification-bell" onclick="currentPage='notices';renderNotices();">
+                        <i class="far fa-bell"></i>
+                        <span class="notification-badge" id="unreadBadge" style="display: none;">0</span>
+                    </div>
+                    <div onclick="showProfileModal()"
+                        style="width: 44px; height: 44px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; cursor: pointer; margin-right: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                        D
+                    </div>`;
+
+                renderDashboard();
+                startPolling();
+
+                const safariLoading = document.getElementById('safariLoading');
+                if (safariLoading) safariLoading.style.display = 'none';
+
+                showToast({ type: 'success', title: 'Welcome!', message: 'Logged in as demo user' });
+                return;
+            }
+
             if (!isSupabaseNowAvailable) {
                 // Local-only mode: check localStorage for users
                 errorDiv.textContent = 'Login is not available in offline mode. Please configure Supabase to enable authentication.';
