@@ -5212,31 +5212,34 @@
         // navigation
         let currentPage = 'dashboard';
 
-        document.querySelectorAll('[data-page]').forEach(el => {
-            el.addEventListener('click', (e) => {
-                const page = e.currentTarget.dataset.page;
-                if (!page) return;
+        // Function to set up navigation - called after DOM is ready
+        function setupNavigation() {
+            document.querySelectorAll('[data-page]').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    const page = e.currentTarget.dataset.page;
+                    if (!page) return;
 
-                // Update active states
-                document.querySelectorAll('.nav-item, .bottom-nav i').forEach(n => n.classList.remove('active'));
-                e.currentTarget.classList.add('active');
+                    // Update active states
+                    document.querySelectorAll('.nav-item, .bottom-nav i').forEach(n => n.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
 
-                // Track current page
-                currentPage = page;
+                    // Track current page
+                    currentPage = page;
 
-                // Render page
-                if (page === 'dashboard') renderDashboard();
-                if (page === 'routine') renderRoutine();
-                if (page === 'notices') renderNotices();
-                if (page === 'notes') renderNotes();
-                if (page === 'members') renderMembers();
-                if (page === 'syllabus') renderSyllabus();
-                if (page === 'cr-mode') renderCRMode();
+                    // Render page
+                    if (page === 'dashboard') renderDashboard();
+                    if (page === 'routine') renderRoutine();
+                    if (page === 'notices') renderNotices();
+                    if (page === 'notes') renderNotes();
+                    if (page === 'members') renderMembers();
+                    if (page === 'syllabus') renderSyllabus();
+                    if (page === 'cr-mode') renderCRMode();
 
-                // Close modal if open
-                document.getElementById('modalOverlay').style.display = 'none';
+                    // Close modal if open
+                    document.getElementById('modalOverlay').style.display = 'none';
+                });
             });
-        });
+        }
 
         // Function to re-render current page
         function reRenderCurrentPage() {
@@ -5408,6 +5411,10 @@
         function startApp() {
             // Use setTimeout to ensure DOM is fully ready
             setTimeout(function () {
+                // Set up navigation first
+                setupNavigation();
+
+                // Then initialize app
                 initializeApp();
             }, 100);
         }
