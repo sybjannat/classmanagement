@@ -2105,10 +2105,15 @@
         }
 
         // ---------- High Alert Notification System ----------
-        let notificationPermission = Notification.permission;
+        let notificationPermission = 'default';
+
+        // Check if Notification API exists
+        if (typeof Notification !== 'undefined') {
+            notificationPermission = Notification.permission;
+        }
 
         async function requestNotificationPermission() {
-            if ('Notification' in window && Notification.permission === 'default') {
+            if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
                 notificationPermission = await Notification.requestPermission();
             }
         }
