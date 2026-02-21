@@ -1821,6 +1821,15 @@
 
             <!-- MAIN DYNAMIC CONTENT -->
             <main class="main-content" id="mainContent">
+                <!-- Loading state for Safari -->
+                <div id="safariLoading"
+                    style="position:absolute; inset:0; background:#F8FAFC; display:flex; align-items:center; justify-content:center; z-index:10;">
+                    <div style="text-align:center;">
+                        <i class="fas fa-spinner fa-spin"
+                            style="font-size:2.8rem; color:#6366F1; margin-bottom:12px;"></i>
+                        <p style="color:#64748B; font-weight:500;">Loading YE-48...</p>
+                    </div>
+                </div>
                 <!-- Dashboard by default -->
             </main>
         </div>
@@ -5290,86 +5299,92 @@
             }
         });
 
-        // ==================== IMMEDIATE AUTH CHECK (BEFORE ANY NETWORK) ====================
-        // Show login modal immediately if no user is logged in - don't wait for Supabase!
-        const savedUserStr = localStorage.getItem('currentUser');
+        // ==================== CRITICAL SAFARI-FIX: SYNCHRONOUS AUTH CHECK ====================
+        // This runs IMMEDIATELY, before any network calls
 
-        if (!savedUserStr) {
-            // Show login instantly — no waiting for Supabase!
-            document.getElementById('authModal').style.display = 'flex';
-            document.body.style.overflow = 'hidden';
+        (function immediateAuthCheck() {
+            console.log('%c🚀 YE-48 Immediate Auth Check Started', 'color:#6366F1;font-weight:bold');
 
-            // Keep main content empty - modal covers it
-            document.getElementById('mainContent').innerHTML = '';
+            const savedUserStr = localStorage.getItem('currentUser');
 
-            // Still load data in background (non-blocking)
-            initializeData().then(() => {
-                // Data loaded in background
-                console.log('Data loaded in background (not logged in)');
-            }).catch(err => console.error('Background data load failed:', err));
-
-        } else {
-            // User is logged in → proceed normally
-            currentUser = JSON.parse(savedUserStr);
-
-            // Update header to show user avatar
-            const container = document.getElementById('authButtonContainer');
-            const initial = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U';
-            container.innerHTML = `
-                <div class="notification-bell" onclick="currentPage='notices';renderNotices();">
-                    <i class="far fa-bell"></i>
-                    <span class="notification-badge" id="unreadBadge" style="display: none;">0</span>
-                </div>
-                <div onclick="showProfileModal()"
-                    style="width: 44px; height: 44px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; cursor: pointer; margin-right: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
-                    ${initial}
-                </div>`;
-
-            // Show loading while data loads
-            document.getElementById('mainContent').innerHTML = `
-                <div style="display: flex; justify-content: center; align-items: center; height: 60vh;">
-                    <div style="text-align: center;">
-                        <i class="fas fa-spinner fa-spin" style="font-size: 2.5rem; color: #6366F1; margin-bottom: 20px;"></i>
-                        <p class="text-secondary">Loading your dashboard...</p>
-                    </div>
-                </div>`;
-
-            initializeData().then(() => {
-                // Initialize data hashes for polling
-                lastDataHash.notices = getDataHash(notices);
-                lastDataHash.notes = getDataHash(notes);
-                lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
-                lastDataHash.classTests = getDataHash(classTests);
-
-                // Render dashboard
-                renderDashboard();
-
-                // Start polling for real-time updates
-                startPolling();
-
-                // Check unread notices and update badge
-                if (notices.some(n => !isNoticeReadByUser(n.id))) {
-                    const badge = document.getElementById('unreadBadge');
-                    const dot = document.getElementById('unreadDot');
-                    if (badge) {
-                        const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
-                        badge.style.display = 'flex';
-                        badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-                        if (dot) dot.style.display = 'block';
-                    }
+            // ── NO USER → SHOW LOGIN INSTANTLY ──
+            if (!savedUserStr) {
+                const modal = document.getElementById('authModal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                    console.log('%c✅ Auth modal shown immediately (Safari-safe)', 'color:#10B981');
                 }
 
-                console.log('App initialized successfully');
+                // Hide Safari loading overlay
+                const safariLoading = document.getElementById('safariLoading');
+                if (safariLoading) safariLoading.style.display = 'none';
+
+                // Tiny fallback for extreme Safari delays
+                setTimeout(() => {
+                    const m = document.getElementById('authModal');
+                    if (m && m.style.display !== 'flex') {
+                        m.style.display = 'flex';
+                        document.body.style.overflow = 'hidden';
+                    }
+                }, 300);
+
+                // Load data in background only (non-blocking)
+                setTimeout(() => {
+                    initializeData().catch(() => { });
+                }, 1200);
+
+                return; // STOP HERE — do not run old code
+            }
+
+            // ── USER ALREADY LOGGED IN ──
+            currentUser = JSON.parse(savedUserStr);
+
+            // Update header instantly
+            const container = document.getElementById('authButtonContainer');
+            if (container) {
+                const initial = (currentUser.name || 'U').charAt(0).toUpperCase();
+                container.innerHTML = `
+            <div class="notification-bell" onclick="currentPage='notices';renderNotices();">
+                <i class="far fa-bell"></i>
+                <span class="notification-badge" id="unreadBadge" style="display: none;">0</span>
+            </div>
+            <div onclick="showProfileModal()" 
+                 style="width: 44px; height: 44px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; cursor: pointer; margin-right: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                ${initial}
+            </div>`;
+            }
+
+            // Now safely load everything
+            initializeData().then(() => {
+                renderDashboard();
+                startPolling();
+                updateUnreadBadge();
+
+                // Hide Safari loading overlay
+                const safariLoading = document.getElementById('safariLoading');
+                if (safariLoading) safariLoading.style.display = 'none';
+
+                console.log('%c✅ Dashboard loaded successfully', 'color:#10B981');
             }).catch(err => {
-                console.error('Failed to initialize:', err);
-                document.getElementById('mainContent').innerHTML = `
-                    <div style="padding: 40px; text-align: center;">
-                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #EF4444; margin-bottom: 20px;"></i>
-                        <h2>Failed to load data</h2>
-                        <p class="text-secondary">Please refresh the page</p>
-                    </div>`;
+                console.warn('Data load failed, still showing dashboard', err);
+                renderDashboard();
+                // Hide Safari loading on error too
+                const safariLoading = document.getElementById('safariLoading');
+                if (safariLoading) safariLoading.style.display = 'none';
             });
-        }
+
+        })();
+
+        // Final safety net (in case Safari delays the whole script)
+        setTimeout(() => {
+            const modal = document.getElementById('authModal');
+            if (modal && modal.style.display !== 'flex' && !localStorage.getItem('currentUser')) {
+                modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                console.warn('Safety net forced modal (Safari delay)');
+            }
+        }, 1800);
     </script>
 
     <!-- Modern Auth Modal (Login/Signup) -->
@@ -5570,6 +5585,15 @@
                     // Start polling for updates
                     startPolling();
 
+                    // Update unread badge
+                    if (typeof updateUnreadBadge === 'function') {
+                        updateUnreadBadge();
+                    }
+
+                    // Hide Safari loading overlay
+                    const safariLoading = document.getElementById('safariLoading');
+                    if (safariLoading) safariLoading.style.display = 'none';
+
                     showToast({ type: 'success', title: 'Welcome back!', message: 'Logged in successfully' });
                 } else {
                     errorDiv.textContent = 'Invalid Student ID or Password';
@@ -5650,6 +5674,15 @@
 
                 // Start polling for updates
                 startPolling();
+
+                // Update unread badge
+                if (typeof updateUnreadBadge === 'function') {
+                    updateUnreadBadge();
+                }
+
+                // Hide Safari loading overlay
+                const safariLoading = document.getElementById('safariLoading');
+                if (safariLoading) safariLoading.style.display = 'none';
 
                 showToast({ type: 'success', title: 'Welcome!', message: 'Account created successfully' });
             } catch (e) {
