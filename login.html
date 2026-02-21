@@ -669,6 +669,180 @@
       }
     }
 
+    /* Landscape mobile */
+    @media (max-height: 500px) and (orientation: landscape) {
+      body {
+        padding: 10px;
+        align-items: center;
+      }
+
+      .login-container {
+        max-height: 95vh;
+        overflow-y: auto;
+        padding: 16px 20px;
+      }
+
+      .login-header {
+        margin-bottom: 12px;
+      }
+
+      .logo {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+        margin-bottom: 8px;
+      }
+
+      .login-header h1 {
+        font-size: 1.1rem;
+      }
+
+      .form-toggle {
+        margin-bottom: 12px;
+      }
+
+      .form-group {
+        margin-bottom: 10px;
+      }
+    }
+
+    /* Extra small devices */
+    @media (max-width: 320px) {
+      .login-container {
+        padding: 20px 16px;
+        border-radius: 16px;
+      }
+
+      .logo {
+        width: 48px;
+        height: 48px;
+        font-size: 1.1rem;
+      }
+
+      .login-header h1 {
+        font-size: 1.2rem;
+      }
+
+      .toggle-btn {
+        padding: 8px 10px;
+        font-size: 0.75rem;
+      }
+
+      .input-wrapper input {
+        padding: 10px 38px 10px 38px;
+        font-size: 0.9rem;
+      }
+
+      .login-btn {
+        padding: 12px;
+        font-size: 0.85rem;
+      }
+    }
+
+    /* Tablet landscape */
+    @media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+      body {
+        align-items: center;
+      }
+
+      .login-container {
+        max-width: 420px;
+        padding: 36px 32px;
+      }
+    }
+
+    /* Large screens */
+    @media (min-width: 1440px) {
+      .login-container {
+        max-width: 480px;
+        padding: 48px 40px;
+      }
+
+      .logo {
+        width: 64px;
+        height: 64px;
+        font-size: 1.5rem;
+      }
+
+      .login-header h1 {
+        font-size: 1.6rem;
+      }
+
+      .login-header p {
+        font-size: 0.95rem;
+      }
+
+      .toggle-btn {
+        padding: 14px 20px;
+        font-size: 0.95rem;
+      }
+
+      .input-wrapper input {
+        padding: 14px 48px 14px 48px;
+        font-size: 1rem;
+      }
+
+      .form-group label {
+        font-size: 0.9rem;
+      }
+
+      .login-btn {
+        padding: 16px;
+        font-size: 1rem;
+      }
+    }
+
+    /* Ultra wide screens */
+    @media (min-width: 1920px) {
+      body {
+        padding: 40px;
+      }
+
+      .login-container {
+        max-width: 520px;
+      }
+    }
+
+    /* Touch device improvements */
+    @media (hover: none) and (pointer: coarse) {
+
+      .toggle-btn,
+      .login-btn,
+      .forgot-password,
+      .switch-link a,
+      .toggle-password {
+        min-height: 44px;
+        min-width: 44px;
+      }
+
+      .input-wrapper input {
+        min-height: 48px;
+      }
+
+      .remember-me input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
+      }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+
+      .login-container {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
+    }
+
     /* Dark mode support */
     @media (prefers-color-scheme: dark) {
       .login-container {
@@ -1255,9 +1429,9 @@
           loginBtn.querySelector('.btn-text').innerHTML = '<i class="fas fa-check"></i> Success!';
           loginBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
 
-          // Redirect to class.html after successful login
+          // Redirect to class page after successful login
           setTimeout(() => {
-            window.location.href = 'class.html';
+            window.location.href = '/class';
           }, 1000);
         } else {
           loginBtn.classList.remove('loading');
@@ -1321,7 +1495,7 @@
         signupBtn.querySelector('.btn-text').innerHTML = '<i class="fas fa-check"></i> Account Created!';
         signupBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
 
-        setTimeout(() => { window.location.href = 'class.html'; }, 1000);
+        setTimeout(() => { window.location.href = '/class'; }, 1000);
       } catch (e) {
         console.error('Signup error:', e);
         signupBtn.classList.remove('loading');
