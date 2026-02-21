@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>YE-48 — Class Management</title>
     <!-- Fonts & Icons -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900&f[]=inter@400,500,600&display=swap" rel="stylesheet">
@@ -1857,6 +1859,12 @@
     </div>
 
     <script>
+        // ==================== GLOBAL ERROR HANDLER ====================
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            console.error('Global Error: ', msg, '\nLine: ' + lineNo, '\nColumn: ' + columnNo);
+            return false;
+        };
+
         // ==================== SUPABASE CLIENT ====================
         const SUPABASE_URL = 'https://igfpnaboighqrivtniji.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnZnBuYWJvaWdocXJpdnRuaWppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NDE1NDcsImV4cCI6MjA4NzExNzU0N30.x214dTL53lmJ15tsKkcKLIdjfbuvJVPkNH_QG4NxhEY';
@@ -4120,7 +4128,6 @@
                 await initializeData();
             } catch (error) {
                 console.error('Error initializing data:', error);
-                // Load from localStorage as fallback
                 loadFromLocalStorage();
             }
 
@@ -4135,11 +4142,22 @@
                     }
                     await loadUserReadNotices();
                     updateAuthButton();
-                    renderDashboard();
                 } catch (error) {
                     console.error('Error loading user:', error);
                     showAuthModal();
                     return;
+                }
+
+                // Render dashboard with error handling
+                try {
+                    renderDashboard();
+                } catch (error) {
+                    console.error('Error rendering dashboard:', error);
+                    // Show fallback content
+                    const mainContent = document.getElementById('mainContent');
+                    if (mainContent) {
+                        mainContent.innerHTML = '<div style="padding: 40px; text-align: center;"><h2>Welcome to Class Dashboard</h2><p>Loading your content...</p></div>';
+                    }
                 }
 
                 lastDataHash.notices = getDataHash(notices);
