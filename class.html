@@ -4242,127 +4242,169 @@
             else if (currentPage === 'cr-mode') renderCRMode();
         }
 
-        // Initialize
+        // Initialize - Simplified without awaiting Supabase
         window.addEventListener('DOMContentLoaded', async function () {
-            try {
-                AOS.init({ duration: 600, once: true, easing: 'ease-out' });
+            console.log('DOM Content Loaded - Starting initialization');
 
-                // FIRST: Check for logged in user BEFORE initializing data
+            try {
+                // Initialize AOS
+                if (typeof AOS !== 'undefined') {
+                    AOS.init({ duration: 600, once: true, easing: 'ease-out' });
+                    console.log('AOS initialized');
+                }
+
+                // Check localStorage
+                console.log('Checking localStorage...');
                 const savedUser = localStorage.getItem('currentUser');
+                console.log('Saved user exists:', !!savedUser);
 
                 if (!savedUser) {
-                    // No user logged in, redirect to login
+                    console.log('No user found, redirecting to login');
                     window.location.href = 'login.html';
                     return;
                 }
 
+                // Parse user
                 try {
                     currentUser = JSON.parse(savedUser);
+                    console.log('User parsed:', currentUser.name);
+
                     const savedCRMode = localStorage.getItem('crMode') === 'true';
                     if (savedCRMode) {
                         currentUser.role = 'cr';
+                        console.log('CR mode enabled');
                     }
-                } catch (error) {
-                    console.error('Error parsing user:', error);
+                } catch (e) {
+                    console.log('Error parsing user:', e);
                     localStorage.removeItem('currentUser');
                     window.location.href = 'login.html';
                     return;
                 }
 
-                // THEN initialize data (with the user context)
-                await initializeData();
+                // Load from localStorage immediately (synchronously)
+                console.log('Loading from localStorage...');
+                try {
+                    notices = JSON.parse(localStorage.getItem('notices')) || [];
+                    notes = JSON.parse(localStorage.getItem('notes')) || [];
+                    subjects = JSON.parse(localStorage.getItem('subjects')) || [];
+                    todaysRoutine = JSON.parse(localStorage.getItem('todaysRoutine')) || [];
+                    classTests = JSON.parse(localStorage.getItem('classTests')) || [];
+                    websiteSettings = JSON.parse(localStorage.getItem('websiteSettings')) || { logoIcon: 'fa-scroll', websiteName: 'YE-48' };
+                    members = JSON.parse(localStorage.getItem('members')) || ['Aarav Sharma', 'Vivaan Gupta', 'Aditya Kumar', 'Ananya Singh', 'Diya Patel', 'Ishaan Roy', 'Sai Krishna', 'John Mathew', 'Meera Nair', 'Rohan Joshi', 'Priya Shah', 'Karthik Iyer'];
+                    loadTermData();
 
-                // Load user read notices
-                await loadUserReadNotices();
+                    console.log('LocalStorage loaded - notices:', notices.length, 'notes:', notes.length);
+                } catch (e) {
+                    console.log('Error loading from localStorage:', e);
+                }
 
                 // Update UI
+                console.log('Updating auth button...');
                 updateAuthButton();
 
-                // Set initial page to dashboard
+                // Set current page
                 currentPage = 'dashboard';
+                console.log('Current page set to:', currentPage);
 
                 // Render dashboard
-                renderDashboard();
+                console.log('Rendering dashboard...');
+                try {
+                    renderDashboard();
+                    console.log('Dashboard rendered successfully');
+                } catch (e) {
+                    console.log('Error rendering dashboard:', e);
+                    // Fallback simple render
+                    const mainContent = document.getElementById('mainContent');
+                    if (mainContent) {
+                        mainContent.innerHTML = '<div style="padding: 40px; text-align: center;"><h1>Welcome ' + (currentUser.name || 'User') + '!</h1><p>Dashboard is loading...</p></div>';
+                    }
+                }
 
-                // Setup polling
-                lastDataHash.notices = getDataHash(notices);
-                lastDataHash.notes = getDataHash(notes);
-                lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
-                lastDataHash.classTests = getDataHash(classTests);
-                startPolling();
+                // Hide loading indicator
+                const loader = document.getElementById('loadingIndicator');
+                if (loader) {
+                    loader.style.display = 'none';
+                    console.log('Loading indicator hidden');
+                }
+
+                // Try to load from Supabase in background ( DON'T await - fire and forget)
+                if (USE_SUPABASE) {
+                    console.log('Attempting Supabase connection in background...');
+                    // Use setTimeout to not block UI
+                    setTimeout(function () {
+                        initializeData().then(function () {
+                            console.log('Supabase background load complete');
+                            // Re-render if needed
+                            if (currentPage === 'dashboard') {
+                                try { renderDashboard(); } catch (e) { }
+                            }
+                        }).catch(function (e) {
+                            console.log('Supabase background load failed:', e);
+                        });
+                    }, 100);
+                }
+
+                console.log('Initialization complete');
 
             } catch (error) {
-                console.error('Fatal initialization error:', error);
-                // Show error message to user
+                console.log('FATAL ERROR:', error);
+                // Show error on screen
                 const mainContent = document.getElementById('mainContent');
                 if (mainContent) {
-                    mainContent.innerHTML = `
-                        <div style="padding: 40px; text-align: center;">
-                            <div style="background: #FEE2E2; border-radius: 20px; padding: 30px; max-width: 400px; margin: 0 auto;">
-                                <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #DC2626; margin-bottom: 16px;"></i>
-                                <h2 style="color: #991B1B; margin-bottom: 12px;">Something went wrong</h2>
-                                <p style="color: #B91C1C; margin-bottom: 20px;">Please try refreshing the page or login again.</p>
-                                <button onclick="window.location.href='login.html'" 
-                                    style="background: #DC2626; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 600; cursor: pointer;">
-                                    Go to Login
-                                </button>
-                            </div>
-                        </div>`;
+                    mainContent.innerHTML = '<div style="padding: 40px; text-align: center; color: #DC2626;"><h2>Error Loading App</h2><p>' + error.message + '</p><button onclick="window.location.href=\'login.html\'" style="margin-top: 20px; padding: 10px 20px; background: #6366F1; color: white; border: none; border-radius: 8px; cursor: pointer;">Go to Login</button></div>';
                 }
-            }
 
-            // Hide loading indicator if exists
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            if (loadingIndicator) {
-                loadingIndicator.style.display = 'none';
-            }
-
-            window.addEventListener('online', function () {
-                console.log('App is online');
-                if (currentUser) {
-                    // Refresh data when back online
-                    initializeData().then(() => {
-                        if (currentPage === 'dashboard') renderDashboard();
-                        else if (currentPage === 'notices') renderNotices();
-                        else if (currentPage === 'routine') renderRoutine();
-                        else if (currentPage === 'notes') renderNotes();
-                    });
-                }
-                startPolling();
-            });
-            window.addEventListener('offline', function () {
-                console.log('App is offline');
-                stopPolling();
-            });
-
-            const bell = document.querySelector('.notification-bell');
-            if (bell) {
-                bell.addEventListener('click', function () {
-                    this.classList.add('clicked');
-                    setTimeout(() => this.classList.remove('clicked'), 500);
-                    if (currentUser) {
-                        currentPage = 'notices';
-                        renderNotices();
-                        document.querySelectorAll('.nav-item, .bottom-nav i').forEach(n => n.classList.remove('active'));
-                        document.querySelectorAll('[data-page="notices"]').forEach(n => n.classList.add('active'));
-                    } else {
-                        showAuthModal();
-                    }
-                });
-            }
-
-            const urlParams = new URLSearchParams(window.location.search);
-            const linkParam = urlParams.get('link');
-            const titleParam = urlParams.get('title');
-
-            if (linkParam) {
-                const confirmed = confirm(`Open ${titleParam || 'this link'} in browser?`);
-                if (confirmed) {
-                    window.open(linkParam, '_blank');
-                }
-                window.history.replaceState({}, document.title, window.location.pathname);
+                // Hide loader
+                const loader = document.getElementById('loadingIndicator');
+                if (loader) loader.style.display = 'none';
             }
         });
+
+        window.addEventListener('online', function () {
+            console.log('App is online');
+            if (currentUser) {
+                // Refresh data when back online
+                initializeData().then(() => {
+                    if (currentPage === 'dashboard') renderDashboard();
+                    else if (currentPage === 'notices') renderNotices();
+                    else if (currentPage === 'routine') renderRoutine();
+                    else if (currentPage === 'notes') renderNotes();
+                });
+            }
+            startPolling();
+        });
+        window.addEventListener('offline', function () {
+            console.log('App is offline');
+            stopPolling();
+        });
+
+        const bell = document.querySelector('.notification-bell');
+        if (bell) {
+            bell.addEventListener('click', function () {
+                this.classList.add('clicked');
+                setTimeout(() => this.classList.remove('clicked'), 500);
+                if (currentUser) {
+                    currentPage = 'notices';
+                    renderNotices();
+                    document.querySelectorAll('.nav-item, .bottom-nav i').forEach(n => n.classList.remove('active'));
+                    document.querySelectorAll('[data-page="notices"]').forEach(n => n.classList.add('active'));
+                } else {
+                    showAuthModal();
+                }
+            });
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const linkParam = urlParams.get('link');
+        const titleParam = urlParams.get('title');
+
+        if (linkParam) {
+            const confirmed = confirm(`Open ${titleParam || 'this link'} in browser?`);
+            if (confirmed) {
+                window.open(linkParam, '_blank');
+            }
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
 
         // Expose functions globally
         window.showDeleteConfirm = showDeleteConfirm;
