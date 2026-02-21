@@ -2408,21 +2408,46 @@
         // Track which notices have been read by the current user
         let userReadNotices = new Set();
 
-        // Load user-specific notice read status from Supabase
+        // Get storage key for user-specific data
+        function getUserStorageKey(base) {
+            const userId = currentUser?.studentId || currentUser?.id || 'anonymous';
+            return `${base}_${userId}`;
+        }
+
+        // Load user-specific notice read status from Supabase or localStorage
         async function loadUserReadNotices() {
-            if (!currentUser || !currentUser.id || !USE_SUPABASE) return;
-            try {
-                const readStatus = await supabaseClient.getNoticeReadStatus(null, currentUser.id);
-                // Clear existing set and reload from Supabase for proper sync
-                userReadNotices.clear();
-                if (readStatus && Array.isArray(readStatus)) {
-                    readStatus.forEach(status => {
-                        userReadNotices.add(status.notice_id);
-                    });
+            if (!currentUser) return;
+
+            // Try Supabase first if available
+            if (currentUser.id && USE_SUPABASE) {
+                try {
+                    const readStatus = await supabaseClient.getNoticeReadStatus(null, currentUser.id);
+                    userReadNotices.clear();
+                    if (readStatus && Array.isArray(readStatus)) {
+                        readStatus.forEach(status => {
+                            userReadNotices.add(status.notice_id);
+                        });
+                    }
+                    // Also save to localStorage as backup
+                    localStorage.setItem(getUserStorageKey('readNotices'), JSON.stringify([...userReadNotices]));
+                    console.log('Loaded read status for user:', userReadNotices.size, 'notices read');
+                    return;
+                } catch (e) {
+                    console.log('Could not load read status from Supabase:', e);
                 }
-                console.log('Loaded read status for user:', userReadNotices.size, 'notices read');
-            } catch (e) {
-                console.log('Could not load read status:', e);
+            }
+
+            // Fallback to localStorage with student-specific key
+            const storageKey = getUserStorageKey('readNotices');
+            const savedReadNotices = localStorage.getItem(storageKey);
+            if (savedReadNotices) {
+                try {
+                    const parsed = JSON.parse(savedReadNotices);
+                    userReadNotices = new Set(parsed);
+                    console.log('Loaded read status from localStorage:', userReadNotices.size, 'notices read');
+                } catch (e) {
+                    userReadNotices = new Set();
+                }
             }
         }
 

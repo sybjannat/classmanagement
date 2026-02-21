@@ -12,14 +12,6 @@
   ],
   "routes": [
     {
-      "src": "/class\\.html",
-      "dest": "/class.html"
-    },
-    {
-      "src": "/login\\.html",
-      "dest": "/login.html"
-    },
-    {
       "src": "/class",
       "dest": "/class.html"
     },
@@ -33,3 +25,4 @@
     }
   ]
 }
+
