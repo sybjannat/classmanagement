@@ -1885,8 +1885,32 @@
     <script>
         // ==================== GLOBAL ERROR HANDLER ====================
         window.onerror = function (msg, url, lineNo, columnNo, error) {
+            // Suppress Eruda-related errors from browser extensions
+            if (msg && (msg.includes('Eruda') || msg.includes('eruda'))) {
+                return true; // Suppress these errors
+            }
+            // Suppress "Can't find variable" errors for optional APIs
+            if (msg && msg.includes("Can't find variable")) {
+                // Check for Notification or other optional browser APIs
+                if (msg.includes('Notification') || msg.includes('webkit') || msg.includes('moz')) {
+                    return true; // Suppress optional API errors
+                }
+            }
             console.error('Global Error: ', msg, '\nLine: ' + lineNo, '\nColumn: ' + columnNo);
             return false;
+        };
+
+        // Handle unhandled promise rejections
+        window.onunhandledrejection = function (event) {
+            if (event.reason && event.reason.message) {
+                const msg = event.reason.message;
+                // Suppress Eruda-related rejections
+                if (msg.includes('Eruda') || msg.includes('eruda')) {
+                    event.preventDefault();
+                    return;
+                }
+            }
+            console.error('Unhandled Promise Rejection:', event.reason);
         };
 
         // Debug logging
@@ -1899,6 +1923,9 @@
         function isSupabaseConfigured() {
             return SUPABASE_URL.includes('supabase.co') && SUPABASE_ANON_KEY.startsWith('eyJ');
         }
+
+        // Track failed loads to prevent repeated errors
+        const failedLoads = new Set();
 
         const supabaseClient = {
             url: SUPABASE_URL,
@@ -1947,6 +1974,13 @@
                     if (error.name === 'AbortError') {
                         console.error('Request timeout:', endpoint);
                         throw new Error('Request timeout');
+                    }
+                    // Suppress repeated network errors for the same endpoint
+                    if (!failedLoads.has(endpoint) && (error.message.includes('Network') || error.message.includes('Failed to fetch') || error.message.includes('load failed'))) {
+                        failedLoads.add(endpoint);
+                        console.error('Network error for:', endpoint);
+                        // Auto-clear after 30 seconds to allow retry
+                        setTimeout(() => failedLoads.delete(endpoint), 30000);
                     }
                     console.error('Supabase request error:', error);
                     throw error;
@@ -2107,14 +2141,28 @@
         // ---------- High Alert Notification System ----------
         let notificationPermission = 'default';
 
-        // Check if Notification API exists
-        if (typeof Notification !== 'undefined') {
-            notificationPermission = Notification.permission;
+        // Check if Notification API exists with robust error handling
+        try {
+            if (typeof Notification !== 'undefined' && Notification) {
+                notificationPermission = Notification.permission;
+            }
+        } catch (e) {
+            console.log('Notification API not available:', e);
+            notificationPermission = 'denied';
         }
 
         async function requestNotificationPermission() {
-            if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-                notificationPermission = await Notification.requestPermission();
+            try {
+                if (typeof Notification !== 'undefined' && Notification) {
+                    if (Notification.permission === 'default') {
+                        notificationPermission = await Notification.requestPermission();
+                    } else {
+                        notificationPermission = Notification.permission;
+                    }
+                }
+            } catch (e) {
+                console.log('Could not request notification permission:', e);
+                notificationPermission = 'denied';
             }
         }
 
