@@ -4536,7 +4536,7 @@
             } else {
                 // Show login button when not logged in
                 container.innerHTML = `
-                    <button onclick="document.getElementById('authModal').style.display='flex';"
+                    <button onclick="document.getElementById('authModal').style.display='flex'; document.getElementById('mainContent').innerHTML = '<div style=\"display: flex; justify-content: center; align-items: center; height: 60vh;\"><div style=\"text-align: center;\"><i class=\"fas fa-spinner fa-spin\" style=\"font-size: 2.5rem; color: #6366F1; margin-bottom: 20px;\"></i><h2 style=\"color: #1E293B; margin-bottom: 10px;\">Welcome to YE-48</h2><p class=\"text-secondary\">Please login to continue</p></div></div>'\;"
                         style="padding: 8px 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
                         <i class="fas fa-sign-in-alt" style="margin-right: 6px;"></i>Login
                     </button>`;
@@ -5290,27 +5290,34 @@
             }
         });
 
-        // Initialize with mandatory authentication
-        initializeData().then(() => {
-            // Initialize data hashes for polling
-            lastDataHash.notices = getDataHash(notices);
-            lastDataHash.notes = getDataHash(notes);
-            lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
-            lastDataHash.classTests = getDataHash(classTests);
+        // ==================== IMMEDIATE AUTH CHECK (BEFORE ANY NETWORK) ====================
+        // Show login modal immediately if no user is logged in - don't wait for Supabase!
+        const savedUserStr = localStorage.getItem('currentUser');
 
-            // Check if user is logged in
-            const savedUser = localStorage.getItem('currentUser');
-            if (!savedUser) {
-                // No user logged in - show auth modal and don't render dashboard
-                document.getElementById('authModal').style.display = 'flex';
-                // Hide the main app content until logged in
-                document.body.style.overflow = 'hidden';
-                // DO NOT start polling when not logged in - it will cause errors
-                return;
-            }
+        if (!savedUserStr) {
+            // Show login instantly — no waiting for Supabase!
+            document.getElementById('authModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
 
-            // Parse saved user and set currentUser
-            currentUser = JSON.parse(savedUser);
+            // Show loading indicator in main content
+            document.getElementById('mainContent').innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; height: 60vh;">
+                    <div style="text-align: center;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2.5rem; color: #6366F1; margin-bottom: 20px;"></i>
+                        <h2 style="color: #1E293B; margin-bottom: 10px;">Welcome to YE-48</h2>
+                        <p class="text-secondary">Please login to continue</p>
+                    </div>
+                </div>`;
+
+            // Still load data in background (non-blocking)
+            initializeData().then(() => {
+                // Data loaded in background
+                console.log('Data loaded in background (not logged in)');
+            }).catch(err => console.error('Background data load failed:', err));
+
+        } else {
+            // User is logged in → proceed normally
+            currentUser = JSON.parse(savedUserStr);
 
             // Update header to show user avatar
             const container = document.getElementById('authButtonContainer');
@@ -5325,27 +5332,51 @@
                     ${initial}
                 </div>`;
 
-            // User is logged in - render dashboard and start polling
-            renderDashboard();
+            // Show loading while data loads
+            document.getElementById('mainContent').innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; height: 60vh;">
+                    <div style="text-align: center;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2.5rem; color: #6366F1; margin-bottom: 20px;"></i>
+                        <p class="text-secondary">Loading your dashboard...</p>
+                    </div>
+                </div>`;
 
-            // Start polling for real-time updates (only when logged in)
-            startPolling();
+            initializeData().then(() => {
+                // Initialize data hashes for polling
+                lastDataHash.notices = getDataHash(notices);
+                lastDataHash.notes = getDataHash(notes);
+                lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
+                lastDataHash.classTests = getDataHash(classTests);
 
-            // Check unread notices and update badge
-            if (notices.some(n => !isNoticeReadByUser(n.id))) {
-                const badge = document.getElementById('unreadBadge');
-                const dot = document.getElementById('unreadDot');
-                if (badge) {
-                    const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
-                    badge.style.display = 'flex';
-                    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-                    if (dot) dot.style.display = 'block';
+                // Render dashboard
+                renderDashboard();
+
+                // Start polling for real-time updates
+                startPolling();
+
+                // Check unread notices and update badge
+                if (notices.some(n => !isNoticeReadByUser(n.id))) {
+                    const badge = document.getElementById('unreadBadge');
+                    const dot = document.getElementById('unreadDot');
+                    if (badge) {
+                        const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
+                        badge.style.display = 'flex';
+                        badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                        if (dot) dot.style.display = 'block';
+                    }
                 }
-            } else {
-                const dot = document.getElementById('unreadDot');
-                if (dot) dot.style.display = 'none';
-            }
-        });
+
+                console.log('App initialized successfully');
+            }).catch(err => {
+                console.error('Failed to initialize:', err);
+                document.getElementById('mainContent').innerHTML = `
+                    <div style="padding: 40px; text-align: center;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #EF4444; margin-bottom: 20px;"></i>
+                        <h2>Failed to load data</h2>
+                        <p class="text-secondary">Please refresh the page</p>
+                    </div>`;
+            });
+        }
     </script>
 
     <!-- Modern Auth Modal (Login/Signup) -->
