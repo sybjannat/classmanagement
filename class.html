@@ -32,17 +32,16 @@
             overflow-x: hidden;
         }
 
-        /* App container - hidden by default until authenticated */
+        /* App container - shown by default now */
         #app {
-            display: none;
+            display: flex;
             min-height: 100vh;
             overflow-x: hidden;
         }
 
         /* Auth page - shown by default */
         #authPage {
-            display: flex;
-            min-height: 100vh;
+            display: none !important;
         }
 
         /* custom scroll - hidden */
@@ -5323,125 +5322,70 @@
             window.history.replaceState({}, document.title, window.location.pathname);
         }
 
-        // Initialize - check auth status FIRST to avoid flash
-        function checkAuthAndInitialize() {
-            console.log('Starting auth check...');
+        // Initialize - show dashboard directly without authentication
+        function initializeApp() {
+            console.log('Initializing app...');
 
-            // FIRST: Immediately set default state to prevent any flash of wrong content
-            // This ensures login page shows first, then we'll check if user is logged in
+            // Hide auth page completely
             var authPage = document.getElementById('authPage');
-            var appContainer = document.getElementById('app');
-
-            // Default: show login, hide app (prevents flash in new devices/browsers)
-            if (authPage) authPage.style.display = 'flex';
-            if (appContainer) appContainer.style.display = 'none';
-
-            // Then check if user is logged in
-            var isLoggedIn = false;
-
-            // First check global currentUser variable (loaded at page startup)
-            if (currentUser && currentUser.studentId) {
-                isLoggedIn = true;
-                console.log('User logged in via currentUser:', currentUser.studentId);
+            if (authPage) {
+                authPage.style.display = 'none';
             }
 
-            // Also verify with localStorage
-            if (!isLoggedIn) {
-                try {
-                    var savedUser = localStorage.getItem('currentUser');
-                    if (savedUser) {
-                        var user = JSON.parse(savedUser);
-                        if (user && user.studentId) {
-                            isLoggedIn = true;
-                            currentUser = user; // Sync global variable
-                            console.log('User logged in via localStorage:', user.studentId);
+            // Show app container
+            var appContainer = document.getElementById('app');
+            if (appContainer) {
+                appContainer.style.display = 'flex';
+            }
+
+            // Set default user for display
+            currentUser = { name: 'Student', role: 'student', avatar: 'S', studentId: 'Guest' };
+
+            // Update header
+            updateHeaderAuth();
+
+            // Load data and render dashboard
+            initializeData()
+                .then(function () {
+                    console.log('Data initialized');
+
+                    // Initialize data hashes for polling
+                    lastDataHash.notices = getDataHash(notices);
+                    lastDataHash.notes = getDataHash(notes);
+                    lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
+                    lastDataHash.classTests = getDataHash(classTests);
+
+                    // Start polling for real-time updates
+                    startPolling();
+
+                    // Render dashboard
+                    renderDashboard();
+                    console.log('Dashboard rendered');
+
+                    // Check unread notices and update badge
+                    if (notices.some(function (n) { return !isNoticeReadByUser(n.id); })) {
+                        var badge = document.getElementById('unreadBadge');
+                        var dot = document.getElementById('unreadDot');
+                        if (badge) {
+                            var unreadCount = notices.filter(function (n) { return !isNoticeReadByUser(n.id); }).length;
+                            badge.style.display = 'flex';
+                            badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                            if (dot) dot.style.display = 'block';
                         }
                     }
-                } catch (e) {
-                    console.warn('localStorage not available:', e);
-                }
-            }
-
-            if (isLoggedIn) {
-                console.log('User is logged in, showing dashboard...');
-
-                // User is logged in - show dashboard
-                if (authPage) {
-                    authPage.style.display = 'none';
-                }
-
-                if (appContainer) {
-                    appContainer.style.display = 'flex';
-                    console.log('App container display set to flex');
-                } else {
-                    console.error('App container not found!');
-                }
-
-                // Load data and render dashboard
-                initializeData()
-                    .then(function () {
-                        console.log('Data initialized, rendering dashboard...');
-
-                        // Initialize data hashes for polling
-                        lastDataHash.notices = getDataHash(notices);
-                        lastDataHash.notes = getDataHash(notes);
-                        lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
-                        lastDataHash.classTests = getDataHash(classTests);
-
-                        // Start polling for real-time updates
-                        startPolling();
-
-                        // Update header to show user avatar
-                        try {
-                            updateHeaderAuth();
-                        } catch (e) {
-                            console.error('Error updating header:', e);
-                        }
-
-                        // User is logged in - render dashboard
-                        try {
-                            renderDashboard();
-                            console.log('Dashboard render called');
-                        } catch (e) {
-                            console.error('Error rendering dashboard:', e);
-                        }
-
-                        // Check unread notices and update badge
-                        if (notices.some(function (n) { return !isNoticeReadByUser(n.id); })) {
-                            var badge = document.getElementById('unreadBadge');
-                            var dot = document.getElementById('unreadDot');
-                            if (badge) {
-                                var unreadCount = notices.filter(function (n) { return !isNoticeReadByUser(n.id); }).length;
-                                badge.style.display = 'flex';
-                                badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-                                if (dot) dot.style.display = 'block';
-                            }
-                        } else {
-                            var dot = document.getElementById('unreadDot');
-                            if (dot) dot.style.display = 'none';
-                        }
-                    })
-                    .catch(function (err) {
-                        console.error('Error initializing data:', err);
-                        // Still try to render dashboard even if data loading fails
-                        try {
-                            renderDashboard();
-                            console.log('Dashboard rendered after data error');
-                        } catch (e) {
-                            console.error('Error rendering dashboard:', e);
-                        }
-                    });
-            } else {
-                console.log('User is NOT logged in, showing login page');
-                // User is NOT logged in - login page already shown (set above)
-            }
+                })
+                .catch(function (err) {
+                    console.error('Error initializing data:', err);
+                    // Still render dashboard even if data loading fails
+                    renderDashboard();
+                });
         }
 
-        // Start authentication check when DOM is ready
+        // Start app when DOM is ready
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', checkAuthAndInitialize);
+            document.addEventListener('DOMContentLoaded', initializeApp);
         } else {
-            checkAuthAndInitialize();
+            initializeApp();
         }
     </script>
 
