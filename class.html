@@ -4568,10 +4568,9 @@
             }
         }
 
-        window.addEventListener('DOMContentLoaded', function () {
-            updateLogoDisplay();
-            updateHeaderAuth();
-        });
+        // Run immediately since script loads after DOM is ready
+        updateLogoDisplay();
+        updateHeaderAuth();
 
         // Toggle online link for room input
         function toggleOnlineLink(checkbox, venueId) {
@@ -5264,61 +5263,59 @@
             sidebar.style.display = sidebar.style.display === 'block' ? 'none' : 'block';
         });
 
-        // Notification bell click handler
-        document.addEventListener('DOMContentLoaded', function () {
-            // Handle online/offline events for polling
-            window.addEventListener('online', function () {
-                console.log('Back online - resuming polling');
-                startPolling();
-            });
-
-            window.addEventListener('offline', function () {
-                console.log('Gone offline - stopping polling');
-                stopPolling();
-            });
-
-            // Initialize audio on first user click anywhere
-            document.addEventListener('click', function initOnce() {
-                initAudioOnInteraction();
-                document.removeEventListener('click', initOnce);
-            }, { once: true });
-
-            const bell = document.querySelector('.notification-bell');
-            if (bell) {
-                bell.addEventListener('click', function () {
-                    // Add clicked class for animation
-                    this.classList.add('clicked');
-
-                    // Remove the class after animation completes
-                    setTimeout(() => {
-                        this.classList.remove('clicked');
-                    }, 500);
-
-                    // Navigate to notices page
-                    currentPage = 'notices';
-                    renderNotices();
-
-                    // Update active states
-                    document.querySelectorAll('.nav-item, .bottom-nav i').forEach(n => n.classList.remove('active'));
-                    document.querySelectorAll('[data-page="notices"]').forEach(n => n.classList.add('active'));
-                });
-            }
-
-            // Handle deep links from notifications
-            const urlParams = new URLSearchParams(window.location.search);
-            const linkParam = urlParams.get('link');
-            const titleParam = urlParams.get('title');
-
-            if (linkParam) {
-                // Show confirmation to open link in browser
-                const confirmed = confirm(`Open ${titleParam || 'this link'} in browser?`);
-                if (confirmed) {
-                    window.open(linkParam, '_blank');
-                }
-                // Clean up URL
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
+        // Handle online/offline events for polling
+        window.addEventListener('online', function () {
+            console.log('Back online - resuming polling');
+            startPolling();
         });
+
+        window.addEventListener('offline', function () {
+            console.log('Gone offline - stopping polling');
+            stopPolling();
+        });
+
+        // Initialize audio on first user click anywhere
+        document.addEventListener('click', function initOnce() {
+            initAudioOnInteraction();
+            document.removeEventListener('click', initOnce);
+        }, { once: true });
+
+        // Notification bell click handler
+        const bell = document.querySelector('.notification-bell');
+        if (bell) {
+            bell.addEventListener('click', function () {
+                // Add clicked class for animation
+                this.classList.add('clicked');
+
+                // Remove the class after animation completes
+                setTimeout(() => {
+                    this.classList.remove('clicked');
+                }, 500);
+
+                // Navigate to notices page
+                currentPage = 'notices';
+                renderNotices();
+
+                // Update active states
+                document.querySelectorAll('.nav-item, .bottom-nav i').forEach(n => n.classList.remove('active'));
+                document.querySelectorAll('[data-page="notices"]').forEach(n => n.classList.add('active'));
+            });
+        }
+
+        // Handle deep links from notifications
+        const urlParams = new URLSearchParams(window.location.search);
+        const linkParam = urlParams.get('link');
+        const titleParam = urlParams.get('title');
+
+        if (linkParam) {
+            // Show confirmation to open link in browser
+            const confirmed = confirm(`Open ${titleParam || 'this link'} in browser?`);
+            if (confirmed) {
+                window.open(linkParam, '_blank');
+            }
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
 
         // Initialize - check auth status FIRST to avoid flash
         function checkAuthAndInitialize() {
