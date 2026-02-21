@@ -5541,8 +5541,9 @@
                 return;
             }
 
-            // Check if Supabase is available
-            if (!USE_SUPABASE) {
+            // Check if Supabase is available (check again dynamically)
+            const isSupabaseNowAvailable = typeof supabaseClient !== 'undefined' && typeof isSupabaseConfigured !== 'undefined' && isSupabaseConfigured();
+            if (!isSupabaseNowAvailable) {
                 // Local-only mode: check localStorage for users
                 errorDiv.textContent = 'Login is not available in offline mode. Please configure Supabase to enable authentication.';
                 errorDiv.style.display = 'block';
@@ -5624,8 +5625,9 @@
                 return;
             }
 
-            // Check if Supabase is available
-            if (!USE_SUPABASE) {
+            // Check if Supabase is available (check again dynamically)
+            const isSupabaseNowAvailable = typeof supabaseClient !== 'undefined' && typeof isSupabaseConfigured !== 'undefined' && isSupabaseConfigured();
+            if (!isSupabaseNowAvailable) {
                 errorDiv.textContent = 'Signup is not available in offline mode. Please configure Supabase to enable authentication.';
                 errorDiv.style.display = 'block';
                 return;
