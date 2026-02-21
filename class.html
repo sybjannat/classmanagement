@@ -5543,6 +5543,7 @@
 
             // Check if Supabase is available (check again dynamically)
             const isSupabaseNowAvailable = typeof supabaseClient !== 'undefined' && typeof isSupabaseConfigured !== 'undefined' && isSupabaseConfigured();
+            console.log('Supabase check:', { supabaseClient: typeof supabaseClient, isSupabaseConfigured: typeof isSupabaseConfigured, isConfigured: isSupabaseConfigured ? isSupabaseConfigured() : false });
             if (!isSupabaseNowAvailable) {
                 // Local-only mode: check localStorage for users
                 errorDiv.textContent = 'Login is not available in offline mode. Please configure Supabase to enable authentication.';
@@ -5551,7 +5552,9 @@
             }
 
             try {
+                console.log('Attempting login for studentId:', studentId);
                 const users = await supabaseClient.getUserByStudentId(studentId);
+                console.log('Login response:', users);
                 if (users && users.length > 0 && users[0].password_hash === password) {
                     currentUser = {
                         id: users[0].id,
@@ -5602,7 +5605,15 @@
                 }
             } catch (e) {
                 console.error('Login error:', e);
-                errorDiv.textContent = 'Login failed. Please check your connection and try again.';
+                // Check if it's a network/connection error vs Supabase config error
+                const isSupabaseConfiguredNow = typeof isSupabaseConfigured !== 'undefined' && isSupabaseConfigured();
+                if (!isSupabaseConfiguredNow) {
+                    errorDiv.textContent = 'Supabase is not configured. Please set up Supabase to enable login.';
+                } else if (e.message && e.message.includes('network')) {
+                    errorDiv.textContent = 'Network error. Please check your internet connection.';
+                } else {
+                    errorDiv.textContent = 'Login failed. Please check your Student ID and password.';
+                }
                 errorDiv.style.display = 'block';
             }
         }
