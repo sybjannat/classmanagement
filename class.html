@@ -1433,10 +1433,34 @@
             .main-content {
                 padding: 28px 36px !important;
                 max-width: 100% !important;
+                margin-left: 80px !important;
+                width: calc(100% - 80px) !important;
+            }
+
+            .sidebar {
+                width: 80px !important;
+            }
+
+            .sidebar .logo span,
+            .sidebar nav .nav-item span,
+            .sidebar .role-badge {
+                display: none;
             }
 
             .dashboard-grid {
                 gap: 24px !important;
+            }
+        }
+
+        /* Large screens (above 1366px) */
+        @media (min-width: 1367px) {
+            .main-content {
+                margin-left: 280px !important;
+                width: calc(100% - 280px) !important;
+            }
+
+            .sidebar {
+                width: 280px !important;
             }
         }
 
@@ -2588,6 +2612,23 @@
                     const localRoutine = JSON.parse(localStorage.getItem('todaysRoutine')) || [];
                     const localTests = JSON.parse(localStorage.getItem('classTests')) || [];
 
+                    // Convert Supabase subject objects to string format for localStorage
+                    subjects = (subjectsData || []).map(s => {
+                        let str = s.name || '';
+                        if (s.teacher) str += ' (' + s.teacher + ')';
+                        return str;
+                    });
+
+                    // If subjects also empty, load from localStorage
+                    if (subjects.length === 0) {
+                        subjects = JSON.parse(localStorage.getItem('subjects')) || [];
+                    }
+
+                    // First assign Supabase data
+                    todaysRoutine = routineData || [];
+                    classTests = testsData || [];
+
+                    // NOW check if we need to preserve local data (after Supabase assignment)
                     if (notes.length === 0 && localNotes.length > 0) {
                         console.log('Supabase returned empty notes, preserving local data');
                         notes = localNotes;
@@ -2600,22 +2641,6 @@
                         console.log('Supabase returned empty routine, preserving local data');
                         todaysRoutine = localRoutine;
                     }
-
-                    // Convert Supabase subject objects to string format for localStorage
-                    subjects = (subjectsData || []).map(s => {
-                        let str = s.name || '';
-                        if (s.teacher) str += ' (' + s.teacher + ')';
-                        return str;
-                    });
-
-                    // If subjects also empty, load from localStorage
-                    if (subjects.length === 0) {
-                        subjects = JSON.parse(localStorage.getItem('subjects')) || [];
-                    }
-                    todaysRoutine = routineData || [];
-                    classTests = testsData || [];
-
-                    // If Supabase returned empty tests but local has data, preserve local data
                     if (classTests.length === 0 && localTests.length > 0) {
                         console.log('Supabase returned empty tests, preserving local data');
                         classTests = localTests;
@@ -2685,8 +2710,9 @@
 
                 // Check if notices changed
                 if (getDataHash(newNotices) !== lastDataHash.notices) {
-                    // Only update if Supabase has data, or if local is also empty
-                    if (newNotices.length > 0 || notices.length === 0) {
+                    // Only update if Supabase has data AND local is also empty
+                    // This prevents overwriting local data when Supabase returns empty
+                    if (newNotices.length > 0 && notices.length === 0) {
                         const newNoticeCount = newNotices.length - notices.length;
                         notices = newNotices;
                         lastDataHash.notices = getDataHash(newNotices);
@@ -2710,8 +2736,9 @@
 
                 // Check if notes changed
                 if (getDataHash(newNotes) !== lastDataHash.notes) {
-                    // Only update if Supabase has data, or if local is also empty
-                    if (newNotes.length > 0 || notes.length === 0) {
+                    // Only update if Supabase has data AND local is also empty
+                    // This prevents overwriting local data when Supabase returns empty
+                    if (newNotes.length > 0 && notes.length === 0) {
                         const newNotesCount = newNotes.length - notes.length;
                         notes = newNotes;
                         lastDataHash.notes = getDataHash(newNotes);
@@ -2741,8 +2768,9 @@
 
                 // Check if routine changed
                 if (getDataHash(newRoutine) !== lastDataHash.todaysRoutine) {
-                    // Only update if Supabase has data, or if local is also empty
-                    if (newRoutine.length > 0 || todaysRoutine.length === 0) {
+                    // Only update if Supabase has data AND local is also empty
+                    // This prevents overwriting local data when Supabase returns empty
+                    if (newRoutine.length > 0 && todaysRoutine.length === 0) {
                         todaysRoutine = newRoutine;
                         lastDataHash.todaysRoutine = getDataHash(newRoutine);
                         localStorage.setItem('todaysRoutine', JSON.stringify(todaysRoutine));
@@ -2763,8 +2791,9 @@
 
                 // Check if class tests changed
                 if (getDataHash(newTests) !== lastDataHash.classTests) {
-                    // Only update if Supabase has data, or if local is also empty
-                    if (newTests.length > 0 || classTests.length === 0) {
+                    // Only update if Supabase has data AND local is also empty
+                    // This prevents overwriting local data when Supabase returns empty
+                    if (newTests.length > 0 && classTests.length === 0) {
                         const newTestsCount = newTests.length - classTests.length;
                         classTests = newTests;
                         lastDataHash.classTests = getDataHash(newTests);
