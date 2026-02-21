@@ -5326,25 +5326,42 @@
         function initializeApp() {
             console.log('Initializing app...');
 
-            // Hide auth page completely
+            // Ensure DOM elements exist
             var authPage = document.getElementById('authPage');
+            var appContainer = document.getElementById('app');
+
+            if (!appContainer) {
+                console.error('App container not found!');
+                return;
+            }
+
+            // Hide auth page completely and show app
             if (authPage) {
                 authPage.style.display = 'none';
             }
 
-            // Show app container
-            var appContainer = document.getElementById('app');
-            if (appContainer) {
-                appContainer.style.display = 'flex';
-            }
+            // Show app container with inline style (ensure it overrides CSS)
+            appContainer.style.display = 'flex';
 
             // Set default user for display
             currentUser = { name: 'Student', role: 'student', avatar: 'S', studentId: 'Guest' };
 
             // Update header
-            updateHeaderAuth();
+            try {
+                updateHeaderAuth();
+            } catch (e) {
+                console.error('Error updating header:', e);
+            }
 
-            // Load data and render dashboard
+            // Render dashboard immediately
+            try {
+                renderDashboard();
+                console.log('Dashboard rendered');
+            } catch (e) {
+                console.error('Error rendering dashboard:', e);
+            }
+
+            // Load data in background
             initializeData()
                 .then(function () {
                     console.log('Data initialized');
@@ -5356,11 +5373,19 @@
                     lastDataHash.classTests = getDataHash(classTests);
 
                     // Start polling for real-time updates
-                    startPolling();
+                    try {
+                        startPolling();
+                    } catch (e) {
+                        console.error('Error starting polling:', e);
+                    }
 
-                    // Render dashboard
-                    renderDashboard();
-                    console.log('Dashboard rendered');
+                    // Re-render dashboard with data
+                    try {
+                        renderDashboard();
+                        console.log('Dashboard re-rendered with data');
+                    } catch (e) {
+                        console.error('Error re-rendering dashboard:', e);
+                    }
 
                     // Check unread notices and update badge
                     if (notices.some(function (n) { return !isNoticeReadByUser(n.id); })) {
@@ -5376,16 +5401,22 @@
                 })
                 .catch(function (err) {
                     console.error('Error initializing data:', err);
-                    // Still render dashboard even if data loading fails
-                    renderDashboard();
                 });
+        }
+
+        // Start app - wait for DOM to be fully ready
+        function startApp() {
+            // Use setTimeout to ensure DOM is fully ready
+            setTimeout(function () {
+                initializeApp();
+            }, 100);
         }
 
         // Start app when DOM is ready
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeApp);
+            document.addEventListener('DOMContentLoaded', startApp);
         } else {
-            initializeApp();
+            startApp();
         }
     </script>
 
