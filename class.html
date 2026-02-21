@@ -2726,7 +2726,7 @@
             const hour = now.getHours();
             const greeting = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
             const userName = currentUser && currentUser.name ? currentUser.name : '';
-            const unreadNoticesCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
+            const unreadNoticesCount = notices ? notices.filter(n => !isNoticeReadByUser(n.id)).length : 0;
             const isCR = currentUser.role === 'cr';
 
             const html = `
@@ -4115,20 +4115,32 @@
 
         // Initialize
         window.addEventListener('DOMContentLoaded', async function () {
-            AOS.init({ duration: 600, once: true, easing: 'ease-out' });
-            await initializeData();
+            try {
+                AOS.init({ duration: 600, once: true, easing: 'ease-out' });
+                await initializeData();
+            } catch (error) {
+                console.error('Error initializing data:', error);
+                // Load from localStorage as fallback
+                loadFromLocalStorage();
+            }
 
             // Check for logged in user
             const savedUser = localStorage.getItem('currentUser');
             if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                const savedCRMode = localStorage.getItem('crMode') === 'true';
-                if (savedCRMode) {
-                    currentUser.role = 'cr';
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    const savedCRMode = localStorage.getItem('crMode') === 'true';
+                    if (savedCRMode) {
+                        currentUser.role = 'cr';
+                    }
+                    await loadUserReadNotices();
+                    updateAuthButton();
+                    renderDashboard();
+                } catch (error) {
+                    console.error('Error loading user:', error);
+                    showAuthModal();
+                    return;
                 }
-                await loadUserReadNotices();
-                updateAuthButton();
-                renderDashboard();
 
                 lastDataHash.notices = getDataHash(notices);
                 lastDataHash.notes = getDataHash(notes);
