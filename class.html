@@ -1773,6 +1773,27 @@
 </head>
 
 <body>
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator"
+        style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+        <div
+            style="width: 50px; height: 50px; border: 3px solid #f3f3f3; border-top: 3px solid #6366F1; border-radius: 50%; animation: spin 1s linear infinite;">
+        </div>
+        <p style="margin-top: 20px; color: #64748B;">Loading your dashboard...</p>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+
     <div id="app">
         <!-- SIDEBAR (desktop) - Clean version -->
         <aside class="sidebar" id="sidebar">
@@ -1864,6 +1885,9 @@
             console.error('Global Error: ', msg, '\nLine: ' + lineNo, '\nColumn: ' + columnNo);
             return false;
         };
+
+        // Debug logging
+        console.log('App starting...');
 
         // ==================== SUPABASE CLIENT ====================
         const SUPABASE_URL = 'https://igfpnaboighqrivtniji.supabase.co';
@@ -3605,7 +3629,11 @@
 
         // Auth Modal Functions
         function showAuthModal() {
-            // Redirect to login.html instead of showing auth modal
+            // Clear any invalid data and redirect to login
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('crMode');
+            currentUser = null;
+            stopPolling();
             window.location.href = 'login.html';
         }
 
@@ -4125,48 +4153,75 @@
         window.addEventListener('DOMContentLoaded', async function () {
             try {
                 AOS.init({ duration: 600, once: true, easing: 'ease-out' });
-                await initializeData();
-            } catch (error) {
-                console.error('Error initializing data:', error);
-                loadFromLocalStorage();
-            }
 
-            // Check for logged in user
-            const savedUser = localStorage.getItem('currentUser');
-            if (savedUser) {
+                // FIRST: Check for logged in user BEFORE initializing data
+                const savedUser = localStorage.getItem('currentUser');
+
+                if (!savedUser) {
+                    // No user logged in, redirect to login
+                    window.location.href = 'login.html';
+                    return;
+                }
+
                 try {
                     currentUser = JSON.parse(savedUser);
                     const savedCRMode = localStorage.getItem('crMode') === 'true';
                     if (savedCRMode) {
                         currentUser.role = 'cr';
                     }
-                    await loadUserReadNotices();
-                    updateAuthButton();
                 } catch (error) {
-                    console.error('Error loading user:', error);
-                    showAuthModal();
+                    console.error('Error parsing user:', error);
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'login.html';
                     return;
                 }
 
-                // Render dashboard with error handling
-                try {
-                    renderDashboard();
-                } catch (error) {
-                    console.error('Error rendering dashboard:', error);
-                    // Show fallback content
-                    const mainContent = document.getElementById('mainContent');
-                    if (mainContent) {
-                        mainContent.innerHTML = '<div style="padding: 40px; text-align: center;"><h2>Welcome to Class Dashboard</h2><p>Loading your content...</p></div>';
-                    }
-                }
+                // THEN initialize data (with the user context)
+                await initializeData();
 
+                // Load user read notices
+                await loadUserReadNotices();
+
+                // Update UI
+                updateAuthButton();
+
+                // Set initial page to dashboard
+                currentPage = 'dashboard';
+
+                // Render dashboard
+                renderDashboard();
+
+                // Setup polling
                 lastDataHash.notices = getDataHash(notices);
                 lastDataHash.notes = getDataHash(notes);
                 lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
                 lastDataHash.classTests = getDataHash(classTests);
                 startPolling();
-            } else {
-                showAuthModal();
+
+            } catch (error) {
+                console.error('Fatal initialization error:', error);
+                // Show error message to user
+                const mainContent = document.getElementById('mainContent');
+                if (mainContent) {
+                    mainContent.innerHTML = `
+                        <div style="padding: 40px; text-align: center;">
+                            <div style="background: #FEE2E2; border-radius: 20px; padding: 30px; max-width: 400px; margin: 0 auto;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #DC2626; margin-bottom: 16px;"></i>
+                                <h2 style="color: #991B1B; margin-bottom: 12px;">Something went wrong</h2>
+                                <p style="color: #B91C1C; margin-bottom: 20px;">Please try refreshing the page or login again.</p>
+                                <button onclick="window.location.href='login.html'" 
+                                    style="background: #DC2626; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 600; cursor: pointer;">
+                                    Go to Login
+                                </button>
+                            </div>
+                        </div>`;
+                }
+            }
+
+            // Hide loading indicator if exists
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
             }
 
             window.addEventListener('online', startPolling);
