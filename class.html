@@ -2378,22 +2378,18 @@
         // ---------- STATE ----------
         // Check localStorage for saved CR mode state
         const savedCRMode = localStorage.getItem('crMode') === 'true';
-        // Check for logged in user
+        // Check for logged in user - DON'T create dummy user when not logged in
         let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
-        if (!currentUser) {
-            currentUser = { name: 'Student', role: 'student', avatar: 'S', studentId: '' };
-        }
 
-        // Apply saved CR mode if it was enabled
-        if (savedCRMode) {
-            currentUser.role = 'cr';
-        }
+        // NOTE: Do NOT create a dummy user here. The auth modal will be shown if no user is logged in.
+        // This prevents inconsistent state where a dummy user with role 'student' exists before login.
 
         // Track which notices have been read by the current user
         let userReadNotices = new Set();
 
         // Load user-specific notice read status from Supabase
         async function loadUserReadNotices() {
+            // Don't load if no user is logged in or Supabase is not available
             if (!currentUser || !currentUser.id || !USE_SUPABASE) return;
             try {
                 const readStatus = await supabaseClient.getNoticeReadStatus(null, currentUser.id);
@@ -4371,6 +4367,11 @@
 
         function renderCRMode() {
             // Check if user is authenticated as CR
+            // Redirect to auth if not logged in
+            if (!currentUser) {
+                document.getElementById('authModal').style.display = 'flex';
+                return;
+            }
             if (currentUser.role !== 'cr') {
                 document.getElementById('mainContent').innerHTML = `
                 <div style="margin-bottom: 32px;">
@@ -4530,6 +4531,13 @@
                             ${initial}
                         </div>`;;
                 }
+            } else {
+                // Show login button when not logged in
+                container.innerHTML = `
+                    <button onclick="document.getElementById('authModal').style.display='flex';"
+                        style="padding: 8px 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
+                        <i class="fas fa-sign-in-alt" style="margin-right: 6px;"></i>Login
+                    </button>`;
             }
         });
 
@@ -5288,9 +5296,6 @@
             lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
             lastDataHash.classTests = getDataHash(classTests);
 
-            // Start polling for real-time updates
-            startPolling();
-
             // Check if user is logged in
             const savedUser = localStorage.getItem('currentUser');
             if (!savedUser) {
@@ -5298,11 +5303,15 @@
                 document.getElementById('authModal').style.display = 'flex';
                 // Hide the main app content until logged in
                 document.body.style.overflow = 'hidden';
+                // DO NOT start polling when not logged in - it will cause errors
                 return;
             }
 
-            // User is logged in - render dashboard
+            // User is logged in - render dashboard and start polling
             renderDashboard();
+
+            // Start polling for real-time updates (only when logged in)
+            startPolling();
 
             // Check unread notices and update badge
             if (notices.some(n => !isNoticeReadByUser(n.id))) {
@@ -5387,8 +5396,9 @@
             </div>
 
             <button
-                onclick="if(localStorage.getItem('currentUser')) { document.getElementById('authModal').style.display='none'; document.body.style.overflow = 'auto'; }"
-                style="position: absolute; top: 16px; right: 16px; background: #F1F5F9; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1rem; color: #64748B;">✕</button>
+                onclick="showToast({type:'info',title:'Login Required',message:'Authentication is required to use this app'})"
+                title="Login required"
+                style="position: absolute; top: 16px; right: 16px; background: #F1F5F9; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: not-allowed; font-size: 1rem; color: #94A3B8;">✕</button>
         </div>
     </div>
 
@@ -5474,6 +5484,14 @@
                 return;
             }
 
+            // Check if Supabase is available
+            if (!USE_SUPABASE) {
+                // Local-only mode: check localStorage for users
+                errorDiv.textContent = 'Login is not available in offline mode. Please configure Supabase to enable authentication.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
             try {
                 const users = await supabaseClient.getUserByStudentId(studentId);
                 if (users && users.length > 0 && users[0].password_hash === password) {
@@ -5494,7 +5512,8 @@
                     errorDiv.style.display = 'block';
                 }
             } catch (e) {
-                errorDiv.textContent = 'Login failed. Please try again.';
+                console.error('Login error:', e);
+                errorDiv.textContent = 'Login failed. Please check your connection and try again.';
                 errorDiv.style.display = 'block';
             }
         }
@@ -5513,6 +5532,13 @@
 
             if (password !== confirmPassword) {
                 errorDiv.textContent = 'Passwords do not match';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Check if Supabase is available
+            if (!USE_SUPABASE) {
+                errorDiv.textContent = 'Signup is not available in offline mode. Please configure Supabase to enable authentication.';
                 errorDiv.style.display = 'block';
                 return;
             }
@@ -5544,7 +5570,8 @@
                 showToast({ type: 'success', title: 'Welcome!', message: 'Account created successfully' });
                 location.reload();
             } catch (e) {
-                errorDiv.textContent = 'Signup failed. Please try again.';
+                console.error('Signup error:', e);
+                errorDiv.textContent = 'Signup failed. Please check your connection and try again.';
                 errorDiv.style.display = 'block';
             }
         }
