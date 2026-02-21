@@ -2286,8 +2286,7 @@
 
         // Start alert checking interval (check every minute)
         setInterval(checkAllAlerts, 60000);
-        // Also check on page load
-        requestNotificationPermission();
+        // Note: requestNotificationPermission() removed - it should only be called on user interaction
 
         // Function to send push notification with vibration and sound for live updates
         let audioContextInstance = null;
@@ -5284,6 +5283,13 @@
         const bell = document.querySelector('.notification-bell');
         if (bell) {
             bell.addEventListener('click', function () {
+                // Request notification permission on first click (if not granted or default)
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission().then(permission => {
+                        console.log('Notification permission:', permission);
+                    });
+                }
+
                 // Add clicked class for animation
                 this.classList.add('clicked');
 
