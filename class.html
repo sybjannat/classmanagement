@@ -5587,10 +5587,7 @@
                     var appContainer = document.getElementById('app');
                     if (appContainer) {
                         appContainer.style.display = 'flex';
-                        // Force browser repaint with small delay
-                        setTimeout(function () {
-                            appContainer.style.display = 'flex';
-                        }, 50);
+                        console.log('App container display set to flex');
                     } else {
                         console.error('App container not found!');
                     }
@@ -5605,7 +5602,15 @@
                     console.error('Error updating header:', e);
                 }
 
-                // Load data and render dashboard
+                // Render dashboard FIRST, then load data in background
+                try {
+                    renderDashboard();
+                    console.log('Dashboard rendered immediately');
+                } catch (e) {
+                    console.error('Error rendering dashboard:', e);
+                }
+
+                // Load data in background and update dashboard if needed
                 try {
                     initializeData().then(() => {
                         try {
@@ -5614,8 +5619,9 @@
                             lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
                             lastDataHash.classTests = getDataHash(classTests);
                             startPolling();
+                            // Re-render to show loaded data
                             renderDashboard();
-                            console.log('Dashboard rendered successfully');
+                            console.log('Dashboard re-rendered with data');
                         } catch (e) {
                             console.error('Error in dashboard render:', e);
                         }
