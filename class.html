@@ -1780,6 +1780,9 @@
             style="width: 50px; height: 50px; border: 3px solid #f3f3f3; border-top: 3px solid #6366F1; border-radius: 50%; animation: spin 1s linear infinite;">
         </div>
         <p style="margin-top: 20px; color: #64748B;">Loading your dashboard...</p>
+        <p id="offlineMessage" style="margin-top: 10px; color: #EF4444; font-size: 0.9rem; display: none;">
+            <i class="fas fa-exclamation-triangle"></i> Using offline mode
+        </p>
     </div>
 
     <style>
@@ -1910,20 +1913,41 @@
                     'Prefer': options.prefer || 'return=representation'
                 };
 
+                // Create an AbortController for timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
                 try {
                     const response = await fetch(url, {
                         method: options.method || 'GET',
                         headers: { ...headers, ...options.headers },
-                        body: options.body ? JSON.stringify(options.body) : null
+                        body: options.body ? JSON.stringify(options.body) : null,
+                        signal: controller.signal
                     });
+
+                    clearTimeout(timeoutId);
 
                     if (options.method === 'DELETE') {
                         if (response.status === 204) return true;
                     }
+
+                    // Check if response is OK before parsing JSON
+                    if (!response.ok) {
+                        if (response.status === 0) {
+                            throw new Error('Network error - possibly offline');
+                        }
+                        const text = await response.text();
+                        throw new Error(text || 'Request failed');
+                    }
+
                     const data = await response.json();
-                    if (!response.ok) throw new Error(data.message || 'Request failed');
                     return data;
                 } catch (error) {
+                    clearTimeout(timeoutId);
+                    if (error.name === 'AbortError') {
+                        console.error('Request timeout:', endpoint);
+                        throw new Error('Request timeout');
+                    }
                     console.error('Supabase request error:', error);
                     throw error;
                 }
@@ -2172,68 +2196,137 @@
             }
         }
 
-        // Initialize data from Supabase or localStorage
+        // Initialize data from Supabase or localStorage (Offline-first approach)
         async function initializeData() {
-            if (USE_SUPABASE) {
-                try {
-                    const [noticesData, notesData, subjectsData, routineData, testsData, settingsData, membersData] = await Promise.all([
-                        supabaseClient.getNotices(),
-                        supabaseClient.getNotes(),
-                        supabaseClient.getSubjects(),
-                        supabaseClient.getTodaysRoutine(),
-                        supabaseClient.getClassTests(),
-                        supabaseClient.getWebsiteSettings(),
-                        supabaseClient.getMembers()
-                    ]);
+            // First, load from localStorage immediately (for instant display)
+            loadFromLocalStorage();
 
-                    console.log('Supabase loaded - Routine:', routineData);
+            // Update loading indicator
+            const loadingIndicator = document.getElementById('loadingIndicator');
 
-                    notices = (noticesData || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                    if (currentUser && currentUser.id) {
-                        await loadUserReadNotices();
-                    }
-                    notes = notesData || [];
-                    subjects = (subjectsData || []).map(s => {
-                        let str = s.name || '';
-                        if (s.teacher) str += ' (' + s.teacher + ')';
-                        return str;
-                    });
-                    todaysRoutine = routineData || [];
-                    classTests = (testsData || []).map(t => ({
-                        id: t.id,
-                        subject: t.subject,
-                        date: t.date,
-                        time: t.time,
-                        venue: t.venue,
-                        chapters: t.chapter || t.chapters || '',
-                        notes: t.notes
-                    }));
-                    websiteSettings = settingsData || { logoIcon: 'fa-scroll', websiteName: 'YE-48' };
-                    members = membersData || [];
-
-                    localStorage.setItem('subjects', JSON.stringify(subjects));
-                    localStorage.setItem('todaysRoutine', JSON.stringify(todaysRoutine));
-                    localStorage.setItem('classTests', JSON.stringify(classTests));
-
-                    console.log('Data loaded from Supabase, todaysRoutine:', todaysRoutine);
-                } catch (error) {
-                    console.error('Error loading from Supabase:', error);
-                    loadFromLocalStorage();
+            // Check if we're offline
+            if (!navigator.onLine) {
+                if (loadingIndicator) {
+                    const offlineMsg = document.getElementById('offlineMessage');
+                    if (offlineMsg) offlineMsg.style.display = 'block';
                 }
-            } else {
-                loadFromLocalStorage();
+                return;
+            }
+
+            if (USE_SUPABASE) {
+                // Set a timeout promise that rejects after 3 seconds
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Supabase timeout')), 3000)
+                );
+
+                try {
+                    // Race between Supabase and timeout
+                    const [noticesData, notesData, subjectsData, routineData, testsData, settingsData, membersData] =
+                        await Promise.race([
+                            Promise.all([
+                                supabaseClient.getNotices().catch(e => { console.log('Notices fetch failed'); return null; }),
+                                supabaseClient.getNotes().catch(e => { console.log('Notes fetch failed'); return null; }),
+                                supabaseClient.getSubjects().catch(e => { console.log('Subjects fetch failed'); return null; }),
+                                supabaseClient.getTodaysRoutine().catch(e => { console.log('Routine fetch failed'); return null; }),
+                                supabaseClient.getClassTests().catch(e => { console.log('Tests fetch failed'); return null; }),
+                                supabaseClient.getWebsiteSettings().catch(e => { console.log('Settings fetch failed'); return null; }),
+                                supabaseClient.getMembers().catch(e => { console.log('Members fetch failed'); return null; })
+                            ]),
+                            timeoutPromise
+                        ]);
+
+                    // Only update if we got data (not null)
+                    if (noticesData) {
+                        notices = noticesData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                        localStorage.setItem('notices', JSON.stringify(notices));
+                    }
+
+                    if (notesData) {
+                        notes = notesData;
+                        localStorage.setItem('notes', JSON.stringify(notes));
+                    }
+
+                    if (subjectsData) {
+                        subjects = subjectsData.map(s => {
+                            let str = s.name || '';
+                            if (s.teacher) str += ' (' + s.teacher + ')';
+                            return str;
+                        });
+                        localStorage.setItem('subjects', JSON.stringify(subjects));
+                    }
+
+                    if (routineData) {
+                        todaysRoutine = routineData;
+                        localStorage.setItem('todaysRoutine', JSON.stringify(todaysRoutine));
+                    }
+
+                    if (testsData) {
+                        classTests = testsData.map(t => ({
+                            id: t.id,
+                            subject: t.subject,
+                            date: t.date,
+                            time: t.time,
+                            venue: t.venue,
+                            chapters: t.chapter || t.chapters || '',
+                            notes: t.notes
+                        }));
+                        localStorage.setItem('classTests', JSON.stringify(classTests));
+                    }
+
+                    if (settingsData) {
+                        websiteSettings = settingsData;
+                        localStorage.setItem('websiteSettings', JSON.stringify(websiteSettings));
+                    }
+
+                    if (membersData) {
+                        members = membersData;
+                        localStorage.setItem('members', JSON.stringify(members));
+                    }
+
+                    console.log('Data loaded from Supabase');
+
+                } catch (error) {
+                    console.log('Supabase timeout or error - using cached data');
+                }
+            }
+
+            // Always ensure we have data (even if empty arrays)
+            notices = notices || [];
+            notes = notes || [];
+            subjects = subjects || [];
+            todaysRoutine = todaysRoutine || [];
+            classTests = classTests || [];
+            websiteSettings = websiteSettings || { logoIcon: 'fa-scroll', websiteName: 'YE-48' };
+            members = members || [];
+
+            // Hide loading indicator
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
             }
         }
 
         function loadFromLocalStorage() {
-            notices = JSON.parse(localStorage.getItem('notices')) || [];
-            notes = JSON.parse(localStorage.getItem('notes')) || [];
-            subjects = JSON.parse(localStorage.getItem('subjects')) || [];
-            todaysRoutine = JSON.parse(localStorage.getItem('todaysRoutine')) || [];
-            classTests = JSON.parse(localStorage.getItem('classTests')) || [];
-            websiteSettings = JSON.parse(localStorage.getItem('websiteSettings')) || { logoIcon: 'fa-scroll', websiteName: 'YE-48' };
-            members = ['Aarav Sharma', 'Vivaan Gupta', 'Aditya Kumar', 'Ananya Singh', 'Diya Patel', 'Ishaan Roy', 'Sai Krishna', 'John Mathew', 'Meera Nair', 'Rohan Joshi', 'Priya Shah', 'Karthik Iyer'];
-            loadTermData();
+            try {
+                notices = JSON.parse(localStorage.getItem('notices')) || [];
+                notes = JSON.parse(localStorage.getItem('notes')) || [];
+                subjects = JSON.parse(localStorage.getItem('subjects')) || [];
+                todaysRoutine = JSON.parse(localStorage.getItem('todaysRoutine')) || [];
+                classTests = JSON.parse(localStorage.getItem('classTests')) || [];
+                websiteSettings = JSON.parse(localStorage.getItem('websiteSettings')) || { logoIcon: 'fa-scroll', websiteName: 'YE-48' };
+                members = JSON.parse(localStorage.getItem('members')) || ['Aarav Sharma', 'Vivaan Gupta', 'Aditya Kumar', 'Ananya Singh', 'Diya Patel', 'Ishaan Roy', 'Sai Krishna', 'John Mathew', 'Meera Nair', 'Rohan Joshi', 'Priya Shah', 'Karthik Iyer'];
+                loadTermData();
+                console.log('Data loaded from localStorage');
+            } catch (e) {
+                console.error('Error loading from localStorage:', e);
+                // Set defaults
+                notices = [];
+                notes = [];
+                subjects = [];
+                todaysRoutine = [];
+                classTests = [];
+                websiteSettings = { logoIcon: 'fa-scroll', websiteName: 'YE-48' };
+                members = ['Aarav Sharma', 'Vivaan Gupta', 'Aditya Kumar', 'Ananya Singh', 'Diya Patel', 'Ishaan Roy', 'Sai Krishna', 'John Mathew', 'Meera Nair', 'Rohan Joshi', 'Priya Shah', 'Karthik Iyer'];
+            }
         }
 
         // Polling for real-time updates
@@ -4224,8 +4317,23 @@
                 loadingIndicator.style.display = 'none';
             }
 
-            window.addEventListener('online', startPolling);
-            window.addEventListener('offline', stopPolling);
+            window.addEventListener('online', function () {
+                console.log('App is online');
+                if (currentUser) {
+                    // Refresh data when back online
+                    initializeData().then(() => {
+                        if (currentPage === 'dashboard') renderDashboard();
+                        else if (currentPage === 'notices') renderNotices();
+                        else if (currentPage === 'routine') renderRoutine();
+                        else if (currentPage === 'notes') renderNotes();
+                    });
+                }
+                startPolling();
+            });
+            window.addEventListener('offline', function () {
+                console.log('App is offline');
+                stopPolling();
+            });
 
             const bell = document.querySelector('.notification-bell');
             if (bell) {
