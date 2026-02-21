@@ -2543,8 +2543,10 @@
 
                     notices = (noticesData || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-                    // Load user's read notice status
-                    await loadUserReadNotices();
+                    // Load user's read notice status only if user is logged in
+                    if (currentUser && currentUser.id) {
+                        await loadUserReadNotices();
+                    }
                     notes = notesData || [];
                     // Convert Supabase subject objects to string format for localStorage
                     subjects = (subjectsData || []).map(s => {
@@ -5307,6 +5309,22 @@
                 return;
             }
 
+            // Parse saved user and set currentUser
+            currentUser = JSON.parse(savedUser);
+
+            // Update header to show user avatar
+            const container = document.getElementById('authButtonContainer');
+            const initial = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U';
+            container.innerHTML = `
+                <div class="notification-bell" onclick="currentPage='notices';renderNotices();">
+                    <i class="far fa-bell"></i>
+                    <span class="notification-badge" id="unreadBadge" style="display: none;">0</span>
+                </div>
+                <div onclick="showProfileModal()"
+                    style="width: 44px; height: 44px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; cursor: pointer; margin-right: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
+                    ${initial}
+                </div>`;
+
             // User is logged in - render dashboard and start polling
             renderDashboard();
 
@@ -5505,8 +5523,30 @@
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                     document.getElementById('authModal').style.display = 'none';
                     document.body.style.overflow = 'auto';
+
+                    // Update header to show user avatar
+                    const container = document.getElementById('authButtonContainer');
+                    const initial = currentUser.name.charAt(0).toUpperCase();
+                    container.innerHTML = `
+                        <div class="notification-bell" onclick="currentPage='notices';renderNotices();">
+                            <i class="far fa-bell"></i>
+                            <span class="notification-badge" id="unreadBadge" style="display: none;">0</span>
+                        </div>
+                        <div onclick="showProfileModal()"
+                            style="width: 44px; height: 44px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; cursor: pointer; margin-right: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
+                            ${initial}
+                        </div>`;
+
+                    // Load user's read notice status
+                    await loadUserReadNotices();
+
+                    // Render dashboard
+                    renderDashboard();
+
+                    // Start polling for updates
+                    startPolling();
+
                     showToast({ type: 'success', title: 'Welcome back!', message: 'Logged in successfully' });
-                    location.reload();
                 } else {
                     errorDiv.textContent = 'Invalid Student ID or Password';
                     errorDiv.style.display = 'block';
@@ -5558,7 +5598,7 @@
                 });
 
                 currentUser = {
-                    id: newUser.id,
+                    id: newUser[0].id,
                     name: fullName,
                     studentId: studentId,
                     role: 'student',
@@ -5567,8 +5607,27 @@
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 document.getElementById('authModal').style.display = 'none';
                 document.body.style.overflow = 'auto';
+
+                // Update header to show user avatar
+                const container = document.getElementById('authButtonContainer');
+                const initial = fullName.charAt(0).toUpperCase();
+                container.innerHTML = `
+                    <div class="notification-bell" onclick="currentPage='notices';renderNotices();">
+                        <i class="far fa-bell"></i>
+                        <span class="notification-badge" id="unreadBadge" style="display: none;">0</span>
+                    </div>
+                    <div onclick="showProfileModal()"
+                        style="width: 44px; height: 44px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; cursor: pointer; margin-right: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
+                        ${initial}
+                    </div>`;
+
+                // Render dashboard
+                renderDashboard();
+
+                // Start polling for updates
+                startPolling();
+
                 showToast({ type: 'success', title: 'Welcome!', message: 'Account created successfully' });
-                location.reload();
             } catch (e) {
                 console.error('Signup error:', e);
                 errorDiv.textContent = 'Signup failed. Please check your connection and try again.';
