@@ -4536,7 +4536,7 @@
             } else {
                 // Show login button when not logged in
                 container.innerHTML = `
-                    <button onclick="document.getElementById('authModal').style.display='flex'; document.getElementById('mainContent').innerHTML = '<div style=\"display: flex; justify-content: center; align-items: center; height: 60vh;\"><div style=\"text-align: center;\"><i class=\"fas fa-spinner fa-spin\" style=\"font-size: 2.5rem; color: #6366F1; margin-bottom: 20px;\"></i><h2 style=\"color: #1E293B; margin-bottom: 10px;\">Welcome to YE-48</h2><p class=\"text-secondary\">Please login to continue</p></div></div>'\;"
+                    <button onclick="document.getElementById('authModal').style.display='flex';"
                         style="padding: 8px 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
                         <i class="fas fa-sign-in-alt" style="margin-right: 6px;"></i>Login
                     </button>`;
@@ -5299,15 +5299,8 @@
             document.getElementById('authModal').style.display = 'flex';
             document.body.style.overflow = 'hidden';
 
-            // Show loading indicator in main content
-            document.getElementById('mainContent').innerHTML = `
-                <div style="display: flex; justify-content: center; align-items: center; height: 60vh;">
-                    <div style="text-align: center;">
-                        <i class="fas fa-spinner fa-spin" style="font-size: 2.5rem; color: #6366F1; margin-bottom: 20px;"></i>
-                        <h2 style="color: #1E293B; margin-bottom: 10px;">Welcome to YE-48</h2>
-                        <p class="text-secondary">Please login to continue</p>
-                    </div>
-                </div>`;
+            // Keep main content empty - modal covers it
+            document.getElementById('mainContent').innerHTML = '';
 
             // Still load data in background (non-blocking)
             initializeData().then(() => {
