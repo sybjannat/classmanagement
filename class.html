@@ -32,9 +32,9 @@
             overflow-x: hidden;
         }
 
-        /* App container - shown by default now */
+        /* App container - always shown now */
         #app {
-            display: flex;
+            display: flex !important;
             min-height: 100vh;
             overflow-x: hidden;
         }
@@ -5409,22 +5409,20 @@
 
         // Start app - wait for DOM to be fully ready
         function startApp() {
+            console.log('startApp called');
             // Use setTimeout to ensure DOM is fully ready
             setTimeout(function () {
+                console.log('Running setupNavigation and initializeApp');
                 // Set up navigation first
                 setupNavigation();
 
                 // Then initialize app
                 initializeApp();
-            }, 100);
+            }, 500);
         }
 
-        // Start app when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', startApp);
-        } else {
-            startApp();
-        }
+        // Start app when DOM is ready - call immediately
+        startApp();
     </script>
 
     <!-- Auth Page (Login/Signup) - Full Page View -->
