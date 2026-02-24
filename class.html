@@ -4036,11 +4036,11 @@
 
             const html = `
             <!-- Hero Section - Modern Greeting Card -->
-            <div style="background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 50%, #EF4444 100%); border-radius: 30px; padding: 40px; margin-bottom: 40px; position: relative; overflow: hidden; box-shadow: 0 25px 80px rgba(139, 92, 246, 0.5);">
+            <div class="greeting-card" style="background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 50%, #EF4444 100%); border-radius: 30px; padding: 40px; margin-bottom: 40px; position: relative; overflow: hidden; box-shadow: 0 25px 80px rgba(139, 92, 246, 0.5);">
                 <!-- Animated Background Orbs -->
-                <div style="position: absolute; top: -30%; right: -10%; width: 400px; height: 400px; background: rgba(255,255,255,0.12); border-radius: 50%; animation: pulse 4s ease-in-out infinite;"></div>
-                <div style="position: absolute; bottom: -20%; left: -5%; width: 300px; height: 300px; background: rgba(255,255,255,0.08); border-radius: 50%; animation: pulse 5s ease-in-out infinite 1s;"></div>
-                <div style="position: absolute; top: 40%; left: 30%; width: 150px; height: 150px; background: rgba(255,255,255,0.06); border-radius: 50%; animation: pulse 6s ease-in-out infinite 2s;"></div>
+                <div class="greeting-orb-1" style="position: absolute; top: -30%; right: -10%; width: 400px; height: 400px; background: rgba(255,255,255,0.12); border-radius: 50%; animation: pulse 4s ease-in-out infinite;"></div>
+                <div class="greeting-orb-2" style="position: absolute; bottom: -20%; left: -5%; width: 300px; height: 300px; background: rgba(255,255,255,0.08); border-radius: 50%; animation: pulse 5s ease-in-out infinite 1s;"></div>
+                <div class="greeting-orb-3" style="position: absolute; top: 40%; left: 30%; width: 150px; height: 150px; background: rgba(255,255,255,0.06); border-radius: 50%; animation: pulse 6s ease-in-out infinite 2s;"></div>
                 
                 <!-- Floating particles -->
                 <div style="position: absolute; top: 20%; left: 10%; width: 8px; height: 8px; background: rgba(255,255,255,0.5); border-radius: 50%; animation: float 3s ease-in-out infinite;"></div>
@@ -4049,17 +4049,35 @@
                 <div style="position: absolute; top: 15%; right: 35%; width: 10px; height: 10px; background: rgba(255,255,255,0.3); border-radius: 50%; animation: float 3.5s ease-in-out infinite 0.5s;"></div>
                 
                 <div style="position: relative; z-index: 1;">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; animation: fadeInUp 0.8s ease;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; animation: fadeInUp 0.8s ease; flex-wrap: wrap;">
                         <span style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; color: white;">
                             <i class="fas fa-calendar-alt" style="margin-right: 6px;"></i>${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </span>
                     </div>
-                    <h1 class="satoshi" style="font-size: 3rem; color: white; margin-bottom: 12px; animation: fadeInUp 0.8s ease 0.1s both; font-weight: 800; text-shadow: 0 2px 20px rgba(0,0,0,0.2);">
+                    <h1 class="satoshi greeting-title" style="font-size: 3rem; color: white; margin-bottom: 12px; animation: fadeInUp 0.8s ease 0.1s both; font-weight: 800; text-shadow: 0 2px 20px rgba(0,0,0,0.2);">
                         Good ${greeting}, ${userName}! <span style="animation: wave 2s ease-in-out infinite;">👋</span>
                     </h1>
-                    <p style="font-size: 1.3rem; color: rgba(255,255,255,0.9); margin-bottom: 0; animation: fadeInUp 0.8s ease 0.2s both; font-weight: 500;">Here's what's happening in our class today.</p>
+                    <p class="greeting-subtitle" style="font-size: 1.3rem; color: rgba(255,255,255,0.9); margin-bottom: 0; animation: fadeInUp 0.8s ease 0.2s both; font-weight: 500;">Here's what's happening in our class today.</p>
                 </div>
             </div>
+            <style>
+                @media (max-width: 768px) {
+                    .greeting-card { padding: 24px !important; border-radius: 20px !important; margin-bottom: 24px !important; }
+                    .greeting-title { font-size: 1.8rem !important; }
+                    .greeting-subtitle { font-size: 1rem !important; }
+                    .greeting-orb-1 { width: 200px !important; height: 200px !important; }
+                    .greeting-orb-2 { width: 150px !important; height: 150px !important; }
+                    .greeting-orb-3 { width: 80px !important; height: 80px !important; }
+                }
+                @media (max-width: 480px) {
+                    .greeting-card { padding: 16px !important; border-radius: 16px !important; margin-bottom: 16px !important; }
+                    .greeting-title { font-size: 1.5rem !important; }
+                    .greeting-subtitle { font-size: 0.9rem !important; }
+                    .greeting-orb-1 { width: 120px !important; height: 120px !important; }
+                    .greeting-orb-2 { width: 80px !important; height: 80px !important; }
+                    .greeting-orb-3 { width: 50px !important; height: 50px !important; }
+                }
+            </style>
             
             <style>
                 @keyframes pulse {
@@ -5156,7 +5174,7 @@
                     
                     <div style="display: flex; gap: 12px; padding: 0 24px 24px;">
                         <button onclick="document.getElementById('routineModal').style.display='none'" style="flex: 1; padding: 14px; border: 1px solid #E2E8F0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #64748B; transition: all 0.2s;">Cancel</button>
-                        <button onclick="const routine=[];for(let i=1;i<=9;i++){const s=document.getElementById('slot'+i+'subject');const t=document.getElementById('slot'+i+'time');const v=document.getElementById('slot'+i+'venue');const o=document.getElementById('slot'+i+'online');if(s&&s.value){routine.push({subject:s.value,time:t?t.value:'--:--',venue:v?v.value:'',online:o?o.checked:false})}}localStorage.setItem('todaysRoutine',JSON.stringify(routine));if(routine.length>0){const newNotice={id:Date.now(),title:"Today's Routine Posted",description:"CR posted today's routine, check it.",priority:'high',date:new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),link:'',created_at:new Date().toISOString()};const existingNotices=JSON.parse(localStorage.getItem('notices'))||[];existingNotices.unshift(newNotice);localStorage.setItem('notices',JSON.stringify(existingNotices));notices=existingNotices}loadTodaysRoutine();document.getElementById('routineModal').style.display='none';saveTodaysRoutine().then(()=>{saveNotices().then(()=>{alert('Routine posted for today!');renderDashboard()})});" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #F97316, #FB923C); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4); transition: all 0.2s;">Post Routine</button>
+                        <button onclick="const routine=[];for(let i=1;i<=9;i++){const s=document.getElementById('slot'+i+'subject');const t=document.getElementById('slot'+i+'time');const v=document.getElementById('slot'+i+'venue');const o=document.getElementById('slot'+i+'online');if(s&&s.value){routine.push({subject:s.value,time:t?t.value:'--:--',venue:v?v.value:'',online:o?o.checked:false})}}localStorage.setItem('todaysRoutine',JSON.stringify(routine));let routineNotice=null;if(routine.length>0){routineNotice={id:Date.now(),title:"Today's Routine Posted",description:"CR posted today's routine, check it.",priority:'high',date:new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),link:'',created_at:new Date().toISOString()};const existingNotices=JSON.parse(localStorage.getItem('notices'))||[];existingNotices.unshift(routineNotice);localStorage.setItem('notices',JSON.stringify(existingNotices));notices=existingNotices}loadTodaysRoutine();document.getElementById('routineModal').style.display='none';saveTodaysRoutine().then(()=>{saveNotices(routineNotice!==null,routineNotice).then(()=>{alert('Routine posted for today!');renderDashboard()})});" style="flex: 1; padding: 14px; background: linear-gradient(135deg, #F97316, #FB923C); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4); transition: all 0.2s;">Post Routine</button>
                     </div>
                 </div>
             </div>
