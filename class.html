@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>YE-48 � Class Management</title>
+    <title>YE-48 Class Management</title>
     <!-- Fonts & Icons -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900&f[]=inter@400,500,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -3959,6 +3959,8 @@
         function saveNote() {
             const subject = document.getElementById('noteSubjectModal').value;
             const title = document.getElementById('noteTitleModal').value;
+            const link = document.getElementById('noteLinkModal')?.value || '';
+            const type = document.getElementById('noteTypeModal')?.value || 'telegram';
 
             // Auto-generate description: "{TEACHER FULL NAME} shared a note on [NOTE TITLE] in the study notes tab"
             // Extract teacher name from subject (format: "SubjectName (TeacherName)" or just "SubjectName")
@@ -3977,33 +3979,31 @@
 
                 if (window.editingNoteIndex !== undefined && window.editingNoteIndex !== null) {
                     // Update existing
-                    notes[window.editingNoteIndex] = { ...notes[window.editingNoteIndex], subject, title, desc };
+                    notes[window.editingNoteIndex] = { ...notes[window.editingNoteIndex], subject, title, desc, link, type };
                     window.editingNoteIndex = null;
                 } else {
-                    // Add new
+                    // Add new with UUID
+                    const noteId = 'note_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                     const newNote = {
-                        id: Date.now(),
+                        id: noteId,
                         subject: subject,
                         title: title,
                         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
                         desc: desc,
-                        link: '#',
-                        type: 'telegram'
+                        link: link || '#',
+                        type: type || 'telegram'
                     };
                     notes.unshift(newNote);
-                }
 
-                localStorage.setItem('notes', JSON.stringify(notes));
-
-                // Auto-generate notice for new note
-                if (isNewNote) {
+                    // Auto-generate notice for new note
                     const subjectName = subject.replace(/\s*\([^)]*\)/, '').trim();
                     const courseTitle = getCourseTitle(subject) || subjectName;
                     const noticeTitle = 'Class note on ' + courseTitle;
                     const noticeDesc = teacherName + ' shared a note on ' + title;
 
+                    const noticeId = 'notice_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                     const newNotice = {
-                        id: Date.now(),
+                        id: noticeId,
                         title: noticeTitle,
                         description: noticeDesc,
                         priority: 'high',
@@ -4016,6 +4016,7 @@
                     saveNotices(true, newNotice);
                 }
 
+                localStorage.setItem('notes', JSON.stringify(notes));
                 document.getElementById('modalOverlay').style.display = 'none';
                 alert('Note saved!');
                 renderNotes();
@@ -5998,9 +5999,10 @@
                         };
                         window.editingNoteIndex = null;
                     } else {
-                        // Add new note
+                        // Add new note with UUID
+                        const noteId = 'note_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                         const newNote = {
-                            id: Date.now(),
+                            id: noteId,
                             subject: subject,
                             title: title,
                             date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
@@ -6009,20 +6011,16 @@
                             type: type || 'telegram'
                         };
                         existingNotes.unshift(newNote);
-                    }
 
-                    localStorage.setItem('notes', JSON.stringify(existingNotes));
-                    notes = existingNotes;
-
-                    // Auto-generate notice for new note
-                    if (isNewNote) {
+                        // Auto-generate notice for new note
                         const subjectName = subject.replace(/\s*\([^)]*\)/, '').trim();
                         const courseTitle = getCourseTitle(subject) || subjectName;
                         const noticeTitle = 'Class note on ' + courseTitle;
                         const noticeDesc = teacherName + ' shared a note on ' + title;
 
+                        const noticeId = 'notice_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                         const newNotice = {
-                            id: Date.now(),
+                            id: noticeId,
                             title: noticeTitle,
                             description: noticeDesc,
                             priority: 'high',
@@ -6035,10 +6033,17 @@
                         saveNotices(true, newNotice);
                     }
 
+                    // Update global notes array and localStorage
+                    notes = existingNotes;
+                    localStorage.setItem('notes', JSON.stringify(notes));
+
                     overlay.style.display = 'none';
                     alert(window.editingNoteIndex !== null ? 'Note updated!' : 'Note added: ' + title);
-                    // Save to Supabase and refresh
-                    saveNotes().then(() => location.reload());
+                    // Save to Supabase and re-render
+                    saveNotes().then(() => {
+                        renderNotes();
+                        renderDashboard();
+                    });
                 } else {
                     alert('Please fill all required fields');
                 }
