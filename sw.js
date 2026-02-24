@@ -8,7 +8,10 @@ const STATIC_ASSETS = [
   '/',
   '/class.html',
   '/manifest.json',
-  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%238B5CF6" rx="20" width="100" height="100"/><text x="50" y="65" font-size="50" text-anchor="middle" fill="white">🎓</text></svg>'
+  '/sw.js',
+  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%238B5CF6" rx="20" width="100" height="100"/><text x="50" y="65" font-size="50" text-anchor="middle" fill="white">🎓</text></svg>',
+  'https://api.fontshare.com/v2/css?f[]=satoshi@900&f[]=inter@400,500,600&display=swap',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'
 ];
 
 // Install event - cache static assets

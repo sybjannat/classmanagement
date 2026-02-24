@@ -16,23 +16,27 @@
   ],
   "routes": [
     {
-      "src": "/class\\.html",
+      "src": "^/class\\.html$",
       "dest": "/class.html"
     },
     {
-      "src": "/class",
+      "src": "^/$",
       "dest": "/class.html"
     },
     {
-      "src": "/manifest\\.json",
+      "src": "^/class$",
+      "dest": "/class.html"
+    },
+    {
+      "src": "^/manifest\\.json$",
       "dest": "/manifest.json"
     },
     {
-      "src": "/sw\\.js",
+      "src": "^/sw\\.js$",
       "dest": "/sw.js"
     },
     {
-      "src": "/(.*)",
+      "src": "^/(.*)$",
       "dest": "/class.html"
     }
   ],
@@ -47,6 +51,10 @@
         {
           "key": "Service-Worker-Allowed",
           "value": "/"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/javascript"
         }
       ]
     },

@@ -171,6 +171,39 @@
             margin-bottom: 8px;
         }
 
+        /* Mobile-specific skeleton styles */
+        @media (max-width: 480px) {
+            .skeleton {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                min-height: 20px;
+            }
+
+            .skeleton-card {
+                padding: 16px !important;
+                min-height: 100px !important;
+            }
+
+            .skeleton-greeting {
+                padding: 16px !important;
+                min-height: 120px !important;
+            }
+
+            .skeleton-stat-card {
+                padding: 16px !important;
+                min-height: 100px !important;
+                display: block !important;
+            }
+        }
+
+        /* Force skeleton display */
+        .skeleton-force {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
         .skeleton-text-short {
             height: 16px;
             width: 70%;
@@ -2143,10 +2176,28 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
                 try {
-                    const registration = await navigator.serviceWorker.register('sw.js', {
+                    // Unregister any existing service workers first (for debugging)
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                        console.log('Unregistered existing SW');
+                    }
+
+                    // Register new service worker
+                    const registration = await navigator.serviceWorker.register('/sw.js', {
                         scope: '/'
                     });
+
                     console.log('PWA Service Worker registered successfully:', registration.scope);
+
+                    // Wait for the service worker to be ready
+                    if (registration.installing) {
+                        console.log('Service worker installing');
+                    } else if (registration.waiting) {
+                        console.log('Service worker installed');
+                    } else if (registration.active) {
+                        console.log('Service worker active');
+                    }
 
                     // Check for updates
                     registration.addEventListener('updatefound', () => {
@@ -7244,4 +7295,3 @@
 </body>
 
 </html>
-
