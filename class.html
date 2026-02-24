@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>YE-48 — Class Management</title>
+    <title>YE-48 � Class Management</title>
     <!-- Fonts & Icons -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900&f[]=inter@400,500,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -211,6 +211,19 @@
 
             50% {
                 transform: translateY(-5px);
+            }
+        }
+
+        /* float animation for creator section */
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-10px) rotate(2deg);
             }
         }
 
@@ -2243,7 +2256,7 @@
 
             // 2. Push Notification
             if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('🔔 Class Test Alert!', {
+                new Notification('?? Class Test Alert!', {
                     body: message,
                     icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
                     badge: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
@@ -2259,7 +2272,7 @@
             // 4. Show toast
             showToast({
                 type: 'warning',
-                title: '🔔 Class Test Tomorrow!',
+                title: '?? Class Test Tomorrow!',
                 message: `${getCourseTitle(test.subject)} - ${test.time.split(' - ')[0]}`
             });
         }
@@ -2362,7 +2375,7 @@
 
             // 2. Push Notification
             if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('🚨 URGENT: ' + notice.title, {
+                new Notification('?? URGENT: ' + notice.title, {
                     body: notice.description || 'High priority notice from CR',
                     icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
                     badge: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
@@ -2379,7 +2392,7 @@
             // 4. Show toast
             showToast({
                 type: 'error',
-                title: '🚨 URGENT Notice!',
+                title: '?? URGENT Notice!',
                 message: notice.title
             });
         }
@@ -2692,6 +2705,16 @@
             subjects = JSON.parse(localStorage.getItem('subjects')) || [];
             todaysRoutine = JSON.parse(localStorage.getItem('todaysRoutine')) || [];
             classTests = JSON.parse(localStorage.getItem('classTests')) || [];
+
+            // Migrate CTs to add IDs if they don't have them
+            classTests = classTests.map(ct => {
+                if (!ct.id) {
+                    ct.id = 'ct_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                }
+                return ct;
+            });
+            localStorage.setItem('classTests', JSON.stringify(classTests));
+
             websiteSettings = JSON.parse(localStorage.getItem('websiteSettings')) || { logoIcon: 'fa-scroll', websiteName: 'YE-48', telegramBotToken: '8709813213:AAECnorYy9nMuM0TR6BgM3eQ3zCyGL2G7AI', telegramChatId: '-1001733013725' };
             members = ['Aarav Sharma', 'Vivaan Gupta', 'Aditya Kumar', 'Ananya Singh', 'Diya Patel', 'Ishaan Roy', 'Sai Krishna', 'John Mathew', 'Meera Nair', 'Rohan Joshi', 'Priya Shah', 'Karthik Iyer'];
         }
@@ -2743,7 +2766,7 @@
                         // Send notification for new notices
                         if (newNoticeCount > 0 && newNotices[0]) {
                             sendPushNotification(
-                                '📢 New Notice Posted!',
+                                '?? New Notice Posted!',
                                 newNotices[0].title + (newNoticeCount > 1 ? ` (+${newNoticeCount - 1} more)` : '')
                             );
                         }
@@ -2769,12 +2792,12 @@
                         // Send notification for notes changes
                         if (newNotesCount > 0) {
                             sendPushNotification(
-                                '📚 New Study Notes Added!',
+                                '?? New Study Notes Added!',
                                 newNotesCount + ' new note' + (newNotesCount > 1 ? 's' : '') + ' available'
                             );
                         } else if (newNotesCount < 0) {
                             sendPushNotification(
-                                '📚 Study Notes Updated',
+                                '?? Study Notes Updated',
                                 Math.abs(newNotesCount) + ' note' + (Math.abs(newNotesCount) > 1 ? 's' : '') + ' removed'
                             );
                         }
@@ -2799,7 +2822,7 @@
 
                         // Send notification for routine update
                         sendPushNotification(
-                            '📅 Today\'s Routine Updated!',
+                            '?? Today\'s Routine Updated!',
                             'Check the updated class schedule for today'
                         );
                     } else {
@@ -2824,7 +2847,7 @@
                         // Send notification for new class tests
                         if (newTestsCount > 0) {
                             sendPushNotification(
-                                '📝 New Class Test Scheduled!',
+                                '?? New Class Test Scheduled!',
                                 newTestsCount + ' new class test' + (newTestsCount > 1 ? 's' : '') + ' added'
                             );
                         }
@@ -2937,20 +2960,48 @@
             localStorage.setItem('notices', JSON.stringify(notices));
             if (USE_SUPABASE) {
                 try {
-                    // Delete existing and re-insert
+                    // Get existing notices from Supabase
                     const existing = await supabaseClient.getNotices();
-                    console.log('Existing notices in Supabase:', existing);
-                    if (existing && existing.length > 0) {
-                        for (const n of existing) { await supabaseClient.deleteNotice(n.id); }
+                    const existingIds = new Set(existing.map(n => n.id));
+                    const localIds = new Set(notices.map(n => n.id).filter(id => id && (String(id).includes('-') || String(id).includes('_'))));
+
+                    // Delete notices that are in Supabase but not in localStorage
+                    for (const n of existing) {
+                        if (!localIds.has(n.id)) {
+                            await supabaseClient.deleteNotice(n.id);
+                        }
                     }
+
+                    // Insert or update notices from localStorage
                     for (const n of notices) {
-                        await supabaseClient.addNotice({
-                            title: n.title, description: n.description, priority: n.priority,
-                            link: n.link || '', pinned: n.pinned || false, read: n.read || false, expiry: n.expiry || '',
-                            created_at: n.created_at || new Date().toISOString()
-                        });
+                        if (n.id && (String(n.id).includes('-') || String(n.id).includes('_'))) {
+                            // Check if exists in Supabase
+                            if (existingIds.has(n.id)) {
+                                // Update existing
+                                await supabaseClient.updateNotice(n.id, {
+                                    title: n.title, description: n.description, priority: n.priority,
+                                    link: n.link || '', pinned: n.pinned || false, read: n.read || false, expiry: n.expiry || ''
+                                });
+                            } else {
+                                // Insert new
+                                await supabaseClient.addNotice({
+                                    title: n.title, description: n.description, priority: n.priority,
+                                    link: n.link || '', pinned: n.pinned || false, read: n.read || false, expiry: n.expiry || '',
+                                    created_at: n.created_at || new Date().toISOString()
+                                });
+                            }
+                        }
                     }
-                    console.log('Notices saved to Supabase');
+                    console.log('Notices synced to Supabase');
+
+                    // Reload user's read status after syncing
+                    await loadUserReadNotices(true);
+
+                    // Update UI if user is viewing notices
+                    if (currentPage === 'notices') {
+                        renderNotices();
+                    }
+                    updateUnreadBadge();
                 } catch (e) {
                     console.error('Error saving notices:', e);
                     alert('Error saving to Supabase: ' + e.message);
@@ -2960,7 +3011,7 @@
             }
 
             // Send Telegram notification for new notice (always try, regardless of Supabase)
-            if (isNewNotice && newNoticeData) {
+            if (newNoticeData) {
                 try {
                     await sendTelegramNotification(newNoticeData.title, newNoticeData.description, newNoticeData.priority);
                 } catch (e) {
@@ -2973,17 +3024,38 @@
             localStorage.setItem('notes', JSON.stringify(notes));
             if (USE_SUPABASE) {
                 try {
+                    // Get existing notes from Supabase
                     const existing = await supabaseClient.getNotes();
-                    if (existing && existing.length > 0) {
-                        for (const n of existing) { await supabaseClient.deleteNote(n.id); }
+                    const existingIds = new Set(existing.map(n => n.id));
+                    const localIds = new Set(notes.map(n => n.id).filter(id => id && (String(id).includes('-') || String(id).includes('_'))));
+
+                    // Delete notes that are in Supabase but not in localStorage
+                    for (const n of existing) {
+                        if (!localIds.has(n.id)) {
+                            await supabaseClient.deleteNote(n.id);
+                        }
                     }
+
+                    // Insert or update notes from localStorage
                     for (const n of notes) {
-                        await supabaseClient.addNote({
-                            subject: n.subject, title: n.title, description: n.desc || n.description || '',
-                            link: n.link || '', type: n.type || 'telegram', date: n.date || ''
-                        });
+                        if (n.id && (String(n.id).includes('-') || String(n.id).includes('_'))) {
+                            // Check if exists in Supabase
+                            if (existingIds.has(n.id)) {
+                                // Update existing
+                                await supabaseClient.updateNote(n.id, {
+                                    subject: n.subject, title: n.title, description: n.desc || n.description || '',
+                                    link: n.link || '', type: n.type || 'telegram', date: n.date || ''
+                                });
+                            } else {
+                                // Insert new
+                                await supabaseClient.addNote({
+                                    subject: n.subject, title: n.title, description: n.desc || n.description || '',
+                                    link: n.link || '', type: n.type || 'telegram', date: n.date || ''
+                                });
+                            }
+                        }
                     }
-                    console.log('Notes saved to Supabase');
+                    console.log('Notes synced to Supabase');
                 } catch (e) { console.error('Error saving notes:', e); }
             }
         }
@@ -3094,14 +3166,20 @@
             if (!confirm('Are you sure you want to delete this CT?')) return;
 
             try {
-                // Delete from Supabase if ID exists
-                const ctToDelete = classTests[ctId];
+                // Find the CT by ID
+                const ctIndex = classTests.findIndex(ct => ct.id === ctId);
+                if (ctIndex === -1) {
+                    showToast({ type: 'error', title: 'Error', message: 'CT not found' });
+                    return;
+                }
+
+                const ctToDelete = classTests[ctIndex];
                 if (USE_SUPABASE && ctToDelete && ctToDelete.id) {
                     await supabaseClient.deleteClassTest(ctToDelete.id);
                 }
 
-                // Remove from local array
-                classTests = classTests.splice(ctId, 1);
+                // Remove from local array by ID
+                classTests = classTests.filter(ct => ct.id !== ctId);
                 localStorage.setItem('classTests', JSON.stringify(classTests));
 
                 // Show success message
@@ -3222,12 +3300,18 @@
         }
 
         // Delete class test
-        function deleteTest(index) {
+        function deleteTest(ctId) {
             showDeleteConfirm(
                 'Are you sure you want to delete this class test?',
                 () => {
                     const testSchedule = JSON.parse(localStorage.getItem('classTests')) || [];
-                    testSchedule.splice(index, 1);
+                    const ctIndex = testSchedule.findIndex(ct => ct.id === ctId);
+                    if (ctIndex !== -1) {
+                        testSchedule.splice(ctIndex, 1);
+                    } else if (ctId >= 0 && ctId < testSchedule.length) {
+                        // Fallback for old format without IDs
+                        testSchedule.splice(ctId, 1);
+                    }
                     localStorage.setItem('classTests', JSON.stringify(testSchedule));
                     // Update global classTests array and save to Supabase
                     classTests = testSchedule;
@@ -3245,9 +3329,15 @@
         }
 
         // Edit class test - open modal with data
-        function editTest(index) {
+        function editTest(ctId) {
             const testSchedule = JSON.parse(localStorage.getItem('classTests')) || [];
-            const test = testSchedule[index];
+            let test = testSchedule.find(ct => ct.id === ctId);
+            let testIndex = testSchedule.findIndex(ct => ct.id === ctId);
+            if (!test) {
+                testIndex = parseInt(ctId);
+                test = testSchedule[testIndex];
+            }
+            if (!test) return;
             openModal('ct');
             // Pre-fill the form after modal opens
             setTimeout(() => {
@@ -3260,7 +3350,7 @@
                 const btn = document.querySelector('#ctForm button[type=\"submit\"]');
                 if (btn) btn.innerHTML = '<i class="fas fa-save"></i> Update CT';
                 // Store the index for updating
-                window.editingTestIndex = index;
+                window.editingTestIndex = testIndex;
             }, 100);
         }
 
@@ -3273,7 +3363,7 @@
                     notes.splice(index, 1);
                     localStorage.setItem('notes', JSON.stringify(notes));
                     // Also delete from Supabase if using Supabase
-                    if (USE_SUPABASE && noteToDelete && noteToDelete.id && String(noteToDelete.id).includes('-')) {
+                    if (USE_SUPABASE && noteToDelete && noteToDelete.id && (String(noteToDelete.id).includes('-') || String(noteToDelete.id).includes('_'))) {
                         supabaseClient.deleteNote(noteToDelete.id).catch(e => console.error('Error deleting from Supabase:', e));
                     }
                     setTimeout(() => {
@@ -3312,9 +3402,9 @@
 
             const subjects = Object.keys(notesBySubject).sort();
 
-            // ═══════════════════════════════════════════════════════════════
+            // ---------------------------------------------------------------
             // PAGE 1: OVERVIEW
-            // ═══════════════════════════════════════════════════════════════
+            // ---------------------------------------------------------------
 
             // White background
             doc.setFillColor(255, 255, 255);
@@ -3347,9 +3437,9 @@
             doc.setLineWidth(0.3);
             doc.line(margin, 40, pw - margin, 40);
 
-            // ═══════════════════════════════════════════════════════════════
+            // ---------------------------------------------------------------
             // OVERVIEW STATS
-            // ═══════════════════════════════════════════════════════════════
+            // ---------------------------------------------------------------
 
             const cardY = 48;
             const cardW = 55;
@@ -3397,9 +3487,9 @@
             doc.setTextColor(80, 80, 80);
             doc.text('WITH LINKS', startX + (cardW + cardGap) * 2 + cardW / 2, cardY + 17, { align: 'center' });
 
-            // ═══════════════════════════════════════════════════════════════
+            // ---------------------------------------------------------------
             // ALL NOTES TABLE (Overview Page)
-            // ═══════════════════════════════════════════════════════════════
+            // ---------------------------------------------------------------
 
             // Helper function for text wrap
             const splitText = (text, maxWidth) => {
@@ -3443,7 +3533,7 @@
                     doc.line(margin, ph - 12, pw - margin, ph - 12);
                     doc.setFontSize(8);
                     doc.setTextColor(100, 100, 100);
-                    doc.text('Class Management System • Page 1', pw / 2, ph - 8, { align: 'center' });
+                    doc.text('Class Management System � Page 1', pw / 2, ph - 8, { align: 'center' });
 
                     doc.addPage();
                     y = 15;
@@ -3493,7 +3583,7 @@
                 } else {
                     doc.setTextColor(150, 150, 150);
                     doc.setFontSize(7);
-                    doc.text('— No link', colLinkX, y + 4.5);
+                    doc.text('� No link', colLinkX, y + 4.5);
                 }
 
                 y += 12;
@@ -3505,11 +3595,11 @@
             doc.line(margin, ph - 12, pw - margin, ph - 12);
             doc.setFontSize(8);
             doc.setTextColor(100, 100, 100);
-            doc.text('Class Management System • All Notes', pw / 2, ph - 8, { align: 'center' });
+            doc.text('Class Management System � All Notes', pw / 2, ph - 8, { align: 'center' });
 
-            // ═══════════════════════════════════════════════════════════════
+            // ---------------------------------------------------------------
             // SUBJECT PAGES
-            // ═══════════════════════════════════════════════════════════════
+            // ---------------------------------------------------------------
 
             // Column positions for subject tables
             const subjColNumX = margin + 3;
@@ -3541,7 +3631,7 @@
                 // Subject stats
                 doc.setFontSize(9);
                 doc.setTextColor(80, 80, 80);
-                doc.text(`${subjNotes.length} notes • ${linkCount} with links`, pw / 2, 22, { align: 'center' });
+                doc.text(`${subjNotes.length} notes � ${linkCount} with links`, pw / 2, 22, { align: 'center' });
 
                 // Table header
                 y = 28;
@@ -3614,7 +3704,7 @@
                     } else {
                         doc.setTextColor(150, 150, 150);
                         doc.setFontSize(7);
-                        doc.text('— No link', subjColLinkX, y + 4.5);
+                        doc.text('� No link', subjColLinkX, y + 4.5);
                     }
 
                     y += 12;
@@ -3626,7 +3716,7 @@
                 doc.line(margin, ph - 12, pw - margin, ph - 12);
                 doc.setFontSize(8);
                 doc.setTextColor(100, 100, 100);
-                doc.text(`Class Management System • ${subjName} • Page ${subjIdx + 2}`, pw / 2, ph - 8, { align: 'center' });
+                doc.text(`Class Management System � ${subjName} � Page ${subjIdx + 2}`, pw / 2, ph - 8, { align: 'center' });
             });
 
             // Save
@@ -3684,7 +3774,7 @@
                     notices = notices.filter(n => String(n.id) !== idStr);
                     localStorage.setItem('notices', JSON.stringify(notices));
                     // Also delete from Supabase if using Supabase
-                    if (USE_SUPABASE && noticeId.toString().includes('-')) {
+                    if (USE_SUPABASE && (noticeId.toString().includes('-') || noticeId.toString().includes('_'))) {
                         supabaseClient.deleteNotice(noticeId).catch(e => console.error('Error deleting from Supabase:', e));
                     }
                     setTimeout(() => {
@@ -4075,9 +4165,9 @@
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     const upcomingTests = testSchedule
-                        .map((test, idx) => ({
+                        .filter(test => test.id) // Only include tests with IDs
+                        .map(test => ({
                             ...test,
-                            originalIndex: idx,
                             testDate: new Date(test.date.split('/').reverse().join('-'))
                         }))
                         .filter(t => t.testDate >= today)
@@ -4203,6 +4293,47 @@
                     to { opacity: 1; transform: translateX(0); }
                 }
             </style>
+            
+            <!-- Website Creator Info -->
+            <div style="margin-top: 32px; background: linear-gradient(135deg, #7C3AED, #9333EA, #C084FC); border-radius: 24px; padding: 28px; color: white; position: relative; overflow: hidden; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.4);">
+                <!-- Animated background -->
+                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden;">
+                    <div style="position: absolute; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; top: -50px; left: -50px; animation: pulse 4s ease-in-out infinite;"></div>
+                    <div style="position: absolute; width: 150px; height: 150px; background: rgba(255,255,255,0.08); border-radius: 50%; bottom: -30px; right: -30px; animation: pulse 5s ease-in-out infinite reverse;"></div>
+                    <div style="position: absolute; width: 80px; height: 80px; background: rgba(255,255,255,0.12); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); animation: pulse 3s ease-in-out infinite;"></div>
+                </div>
+                
+                <div style="position: relative; z-index: 1;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="width: 52px; height: 52px; background: rgba(255,255,255,0.25); border-radius: 16px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); animation: card-float 3s ease-in-out infinite;">
+                            <i class="fas fa-laptop-code" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700;">Website Creator</h3>
+                            <p style="margin: 4px 0 0 0; font-size: 0.8rem; opacity: 0.85;">Class Management System</p>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 16px; padding: 16px; margin-bottom: 16px; backdrop-filter: blur(4px);">
+                        <p style="margin-bottom: 8px; font-size: 1rem; font-weight: 600;">
+                            <i class="fas fa-user" style="width: 20px;"></i> Shoayeb Al Jannat
+                        </p>
+                        <p style="margin-bottom: 6px; font-size: 0.9rem; opacity: 0.95;">
+                            <i class="fas fa-graduation-cap" style="width: 20px;"></i> Department of Yarn Engineering
+                        </p>
+                        <p style="margin-bottom: 6px; font-size: 0.9rem; opacity: 0.95;">
+                            <i class="fas fa-layer-group" style="width: 20px;"></i> 48th Batch
+                        </p>
+                        <p style="margin: 0; font-size: 0.9rem; opacity: 0.95;">
+                            <i class="fas fa-university" style="width: 20px;"></i> Bangladesh University of Textiles (BUTEX)
+                        </p>
+                    </div>
+                    
+                    <a href="https://sybjannat.vercel.app/" target="_blank" style="display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px; background: white; color: #7C3AED; text-decoration: none; border-radius: 50px; font-size: 0.9rem; font-weight: 700; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 25px rgba(0,0,0,0.3)';">
+                        <i class="fas fa-external-link-alt"></i> More about the creator
+                    </a>
+                </div>
+            </div>
             `;
             document.getElementById('mainContent').innerHTML = html;
         }
@@ -4216,7 +4347,7 @@
 
             // Separate upcoming and past tests
             const upcomingTests = testSchedule
-                .map((test, idx) => ({ ...test, originalIndex: idx }))
+                .filter(test => test.id) // Only include tests with IDs (new format)
                 .filter(test => {
                     const testDate = new Date(test.date.split('/').reverse().join('-'));
                     testDate.setHours(0, 0, 0, 0);
@@ -4230,7 +4361,7 @@
 
             const isCR = currentUser.role === 'cr';
             const pastTests = testSchedule
-                .map((test, idx) => ({ ...test, originalIndex: idx }))
+                .filter(test => test.id) // Only include tests with IDs (new format)
                 .filter(test => {
                     const testDate = new Date(test.date.split('/').reverse().join('-'));
                     testDate.setHours(0, 0, 0, 0);
@@ -4315,8 +4446,8 @@
                                 </div>
                                 ${currentUser.role === 'cr' ? `
                                 <div style="padding-top: 20px; display: flex; gap: 12px;">
-                                    <button onclick="editTest(${test.originalIndex})" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;"><i class="fas fa-edit"></i> Edit</button>
-                                    <button onclick="deleteTest(${test.originalIndex})" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #DC2626, #EF4444); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;"><i class="fas fa-trash"></i> Delete</button>
+                                    <button onclick="editTest('${test.id}')" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;"><i class="fas fa-edit"></i> Edit</button>
+                                    <button onclick="deleteTest('${test.id}')" style="flex: 1; padding: 10px; background: linear-gradient(135deg, #DC2626, #EF4444); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600;"><i class="fas fa-trash"></i> Delete</button>
                                 </div>
                                 ` : ''}
                             </div>
@@ -4334,21 +4465,21 @@
                         <table style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr style="border-bottom: 2px solid #E2E8F0;">
-                                    <th style="text-align: left; padding: 14px 16px; color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">SUBJECT NAME</th>
-                                    <th style="text-align: left; padding: 14px 16px; color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">CT SYLLABUS</th>
-                                    <th style="text-align: left; padding: 14px 16px; color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">HELD DATE</th>
+                                    <th style="text-align: center; padding: 14px 16px; color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">SUBJECT NAME</th>
+                                    <th style="text-align: center; padding: 14px 16px; color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">CT SYLLABUS</th>
+                                    <th style="text-align: center; padding: 14px 16px; color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">HELD DATE</th>
                                     ${isCR ? `<th style="text-align: center; padding: 14px 16px; color: #64748B; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">ACTION</th>` : ''}
                                 </tr>
                             </thead>
                             <tbody>
                                 ${pastTests.map(test => `
                                 <tr style="border-bottom: 1px solid #F1F5F9;">
-                                    <td style="padding: 16px; color: #1E293B; font-weight: 600;">${getCourseTitle(test.subject)}</td>
-                                    <td style="padding: 16px; color: #64748B;">${test.chapter || test.chapters || 'N/A'}</td>
-                                    <td style="padding: 16px; color: #64748B;">${test.date}</td>
+                                    <td style="padding: 16px; color: #1E293B; font-weight: 600; text-align: center;">${getCourseTitle(test.subject)}</td>
+                                    <td style="padding: 16px; color: #64748B; text-align: center;">${test.chapter || test.chapters || 'N/A'}</td>
+                                    <td style="padding: 16px; color: #64748B; text-align: center;">${test.date}</td>
                                     <td style="padding: 16px; text-align: center;">
                                         ${isCR ? `
-                                        <button onclick="deleteCT(${test.originalIndex})" style="background: #FEE2E2; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: #EF4444; font-size: 0.85rem; transition: all 0.2s;">
+                                        <button onclick="deleteCT('${test.id}')" style="background: #FEE2E2; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: #EF4444; font-size: 0.85rem; transition: all 0.2s;">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                         ` : ''}
@@ -4519,11 +4650,7 @@
                         <div>
                             <h1 class="satoshi" style="font-size: 2rem;">Study Notes</h1>
                         </div>
-                        ${currentUser.role === 'cr' ? `
-                            <button class="gradient-bg" style="padding: 12px 28px; border-radius: 40px; border: none; display: flex; align-items: center; gap: 8px;" id="addNoteBtn">
-                                <i class="fas fa-plus"></i> Add note
-                            </button>
-                        ` : ''}
+
                     </div>
                     
                     <div style="text-align: center; padding: 60px 20px; background: white; border-radius: 24px; border: 1px solid #F1F5F9;">
@@ -4544,11 +4671,9 @@
                     <div>
                         <h1 class="satoshi" style="font-size: 2rem;">Study Notes</h1>
                     </div>
-                    ${currentUser.role === 'cr' ? `
-                        <button class="gradient-bg" style="padding: 12px 28px; border-radius: 40px; border: none; display: flex; align-items: center; gap: 8px;" id="addNoteBtn">
-                            <i class="fas fa-plus"></i> Add note
-                        </button>
-                    ` : ''}
+                    <button onclick="exportNotesToPDF()" style="padding: 12px 24px; background: linear-gradient(135deg, #7C3AED, #9333EA); color: white; border: none; border-radius: 30px; cursor: pointer; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3); transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(124, 58, 237, 0.4)';">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </button>
                 </div>
                 
                 <!-- Archived Terms -->
@@ -4615,9 +4740,7 @@
             </div>
         `;
 
-            if (currentUser.role === 'cr') {
-                document.getElementById('addNoteBtn')?.addEventListener('click', () => openModal('note'));
-            }
+
         }
 
         function renderMembers() {
@@ -4653,7 +4776,7 @@
                     <p class="text-secondary" style="text-align: center; margin-bottom: 24px;">Authentication required to enable CR mode</p>
                     <input type="password" id="crPassword" oninput="document.getElementById('passwordError').style.display='none'" placeholder="Enter password" style="width: 100%; padding: 14px 18px; border: 1px solid #E2E8F0; border-radius: 12px; font-size: 1rem; margin-bottom: 16px; box-sizing: border-box;">
                     <div id="passwordError" style="display: none; background: #FEF2F2; border: 1px solid #EF4444; color: #DC2626; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.85rem; text-align: center;">
-                        <span style="font-weight: 600;">⚠️ Incorrect Password</span>
+                        <span style="font-weight: 600;">?? Incorrect Password</span>
                     </div>
                     <div style="display: flex; gap: 12px;">
                         <button onclick="document.getElementById('authModal').style.display='none'" style="flex: 1; padding: 14px; border: 1px solid #E2E8F0; background: white; border-radius: 12px; cursor: pointer; font-weight: 600; color: #6B7280;">Cancel</button>
@@ -5057,7 +5180,7 @@
                     </div>
                 </div>
                 <div style="margin-top: 24px; text-align: center;">
-                    <a href="#" style="color: #4F46E5; text-decoration: none;">Download complete syllabus PDF →</a>
+                    <a href="#" style="color: #4F46E5; text-decoration: none;">Download complete syllabus PDF ?</a>
                 </div>
             </div>
         `;
@@ -5271,7 +5394,7 @@
             if (mobileLogoText) mobileLogoText.textContent = websiteSettings.websiteName;
 
             // Update page title
-            document.title = `${websiteSettings.websiteName} — Class Management`;
+            document.title = `${websiteSettings.websiteName} � Class Management`;
         }
 
         // Initialize logo on page load
@@ -5750,11 +5873,12 @@
 
                     if (window.editingTestIndex !== undefined && window.editingTestIndex !== null) {
                         // Update existing
-                        testSchedule[window.editingTestIndex] = { subject: s, date: d, time: t, venue: v, chapter: sy };
+                        testSchedule[window.editingTestIndex] = { ...testSchedule[window.editingTestIndex], subject: s, date: d, time: t, venue: v, chapter: sy };
                         window.editingTestIndex = null;
                     } else {
-                        // Add new
-                        testSchedule.push({ subject: s, date: d, time: t, venue: v, chapter: sy });
+                        // Add new with unique ID
+                        const newTest = { id: 'ct_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9), subject: s, date: d, time: t, venue: v, chapter: sy };
+                        testSchedule.push(newTest);
                     }
 
                     localStorage.setItem('classTests', JSON.stringify(testSchedule));
@@ -5807,30 +5931,31 @@
             // Handle Notice form submission
             document.getElementById('noticeForm')?.addEventListener('submit', function (e) {
                 e.preventDefault();
-                const title = this.querySelector('input[type="text"]').value;
-                const description = this.querySelector('textarea').value;
-                const priority = this.querySelector('select').value;
-                const linkInput = this.querySelector('input[type="url"]');
-                const link = linkInput ? linkInput.value : '';
+                const title = document.getElementById('noticeTitleModal')?.value || '';
+                const description = document.getElementById('noticeDescModal')?.value || '';
+                const priority = document.getElementById('noticePriorityModal')?.value || '';
+                const link = document.getElementById('noticeLinkModal')?.value || '';
                 if (title && description && priority) {
+                    // Generate UUID for notice
+                    const noticeId = 'notice_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                     const newNotice = {
-                        id: Date.now(),
+                        id: noticeId,
                         title: title,
                         priority: priority,
                         description: description,
                         link: link,
                         expiry: '',
                         pinned: false,
-                        read: false
+                        read: false,
+                        created_at: new Date().toISOString()
                     };
-                    const existingNotices = JSON.parse(localStorage.getItem('notices')) || [];
-                    existingNotices.unshift(newNotice);
-                    localStorage.setItem('notices', JSON.stringify(existingNotices));
-                    notices = existingNotices;
-                    overlay.style.display = 'none';
+                    // Add to global notices array
+                    notices.unshift(newNotice);
+                    localStorage.setItem('notices', JSON.stringify(notices));
+                    document.getElementById('modalOverlay').style.display = 'none';
                     alert('Notice posted: ' + title);
                     // Save to Supabase and refresh
-                    saveNotices().then(() => location.reload());
+                    saveNotices(true, newNotice).then(() => location.reload());
                 } else {
                     alert('Please fill all fields');
                 }
@@ -6232,7 +6357,7 @@
         <div
             style="background: white; padding: 40px; border-radius: 24px; max-width: 420px; width: 90%; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
             <button onclick="document.getElementById('profileModal').style.display='none'"
-                style="position: absolute; top: 16px; right: 16px; background: #F1F5F9; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1rem; color: #64748B;">✕</button>
+                style="position: absolute; top: 16px; right: 16px; background: #F1F5F9; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1rem; color: #64748B;">?</button>
 
             <div style="text-align: center; margin-bottom: 24px;">
                 <div
