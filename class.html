@@ -22,6 +22,9 @@
     <meta name="format-detection" content="telephone=no">
 
     <title>YE-48 Class Management</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js"></script>
     <!-- Fonts & Icons -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900&f[]=inter@400,500,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -29,9 +32,9 @@
     <!-- PWA Manifest - Using separate file approach with script injection -->
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/svg+xml"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%238B5CF6' rx='20' width='100' height='100'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>🎓</text></svg>">
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%233B82F6'/><stop offset='50%25' stop-color='%238B5CF6'/><stop offset='100%25' stop-color='%23EF4444'/></linearGradient></defs><rect fill='url(%23g)' rx='20' width='100' height='100'/><text x='50' y='60' font-size='40' text-anchor='middle' fill='white'>📖</text></svg>">
     <link rel="apple-touch-icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%238B5CF6' rx='35' width='180' height='180'/><text x='90' y='120' font-size='80' text-anchor='middle' fill='white'>🎓</text></svg>">
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%233B82F6'/><stop offset='50%25' stop-color='%238B5CF6'/><stop offset='100%25' stop-color='%23EF4444'/></linearGradient></defs><rect fill='url(%23g)' rx='35' width='180' height='180'/><text x='90' y='115' font-size='70' text-anchor='middle' fill='white'>📖</text></svg>">
     <style>
         * {
             margin: 0;
@@ -2281,30 +2284,98 @@
             }
         }
 
-        // Push Notifications - Request permission and enable
+        // Push Notifications - Firebase Cloud Messaging
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHipj0-We5umz34g8ClOrJMC_eIZ34ZCc",
+            authDomain: "class-management-259b0.firebaseapp.com",
+            projectId: "class-management-259b0",
+            storageBucket: "class-management-259b0.firebasestorage.app",
+            messagingSenderId: "323469080053",
+            appId: "1:323469080053:web:ff4f7efb380810caa49cbc",
+            measurementId: "G-F3QF9LS8DN"
+        };
+
+        // VAPID key for push notifications
+        const vapidKey = 'BKON2zr03HoL4QwMXz6hiC2rPKvfaONaN-BKYtBQ4WcJmpwFVwXRc2m5HiuS0zBd3H0u0uzYKDlZAOjNG6hcU7w';
+
+        let firebaseApp = null;
+        let messaging = null;
+
         async function initPushNotifications() {
-            if (!('Notification' in window)) { console.log('[Push] Not supported'); return; }
+            // Check if Firebase is configured
+            if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+                alert('⚠️ Firebase not configured.\n\nTo enable push notifications:\n1. Go to Firebase Console\n2. Create a project\n3. Add your app and copy the config\n4. Update firebaseConfig in class.html');
+                return;
+            }
+
+            if (!('Notification' in window)) {
+                console.log('[Push] Not supported');
+                return;
+            }
+
+            // Initialize Firebase
+            if (!firebaseApp) {
+                try {
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
+                    messaging = firebase.messaging();
+                } catch (e) {
+                    console.error('[Push] Firebase init error:', e);
+                    return;
+                }
+            }
+
+            // Request permission
             const perm = await Notification.requestPermission();
             console.log('[Push] Permission:', perm);
 
-            // Show/hide notification button based on permission
             const notifyBtn = document.getElementById('notifyBtn');
             if (perm === 'granted') {
-                if (notifyBtn) { notifyBtn.innerHTML = '<i class="fas fa-bell-slash" style="margin-right:8px;"></i>Notifications Enabled'; notifyBtn.disabled = true; notifyBtn.style.opacity = '0.7'; }
+                if (notifyBtn) {
+                    notifyBtn.innerHTML = '<i class="fas fa-bell-slash" style="margin-right:8px;"></i>Notifications Enabled';
+                    notifyBtn.disabled = true;
+                    notifyBtn.style.opacity = '0.7';
+                }
+
+                // Get FCM token
+                try {
+                    const token = await messaging.getToken({
+                        vapidKey: vapidKey
+                    });
+                    console.log('[Push] FCM Token:', token);
+                    localStorage.setItem('fcmToken', token);
+
+                    // Save token to Supabase for this user
+                    if (currentUser && currentUser.id) {
+                        await saveFCMToken(currentUser.id, token);
+                    }
+                } catch (e) {
+                    console.log('[Push] GetToken error:', e);
+                }
+
+                // Handle foreground messages
+                messaging.onMessage(function (payload) {
+                    console.log('[Push] Foreground message:', payload);
+                    const notificationTitle = payload.notification?.title || 'YE-48';
+                    const notificationOptions = {
+                        body: payload.notification?.body || 'New notice available',
+                        icon: '/icon-192.png',
+                        badge: '/badge-72.png',
+                        tag: 'ye-48-notice'
+                    };
+                    new Notification(notificationTitle, notificationOptions);
+
+                    // Refresh notices
+                    loadNotices();
+                });
             } else {
                 if (notifyBtn) { notifyBtn.style.display = 'none'; }
             }
+        }
 
-            if (perm === 'granted' && 'serviceWorker' in navigator) {
-                const reg = await navigator.serviceWorker.ready;
-                console.log('[Push] Ready for notifications');
-                // Subscribe to push (would need a push server for real push)
-                try {
-                    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true });
-                    console.log('[Push] Subscribed:', sub.endpoint);
-                    localStorage.setItem('pushSubscription', JSON.stringify(sub));
-                } catch (e) { console.log('[Push] Subscribe error:', e); }
-            }
+        async function saveFCMToken(userId, token) {
+            // Save to Supabase - you'll need to create a table for this
+            // For now, just log it
+            console.log('[Push] Saving token for user:', userId);
         }
 
         // ==================== SUPABASE CLIENT ====================
@@ -3110,9 +3181,11 @@
                         // Send notification for new notices
                         if (newNoticeCount > 0 && newNotices[0]) {
                             sendPushNotification(
-                                '?? New Notice Posted!',
+                                '📢 New Notice Posted!',
                                 newNotices[0].title + (newNoticeCount > 1 ? ` (+${newNoticeCount - 1} more)` : '')
                             );
+                            // Also send Telegram
+                            sendTelegramNotification('📢 New Notice!', newNotices[0].title + (newNoticeCount > 1 ? ` (+${newNoticeCount - 1} more)` : ''));
                         }
                     } else {
                         console.log('Supabase returned empty notices, preserving local data');
@@ -3136,12 +3209,14 @@
                         // Send notification for notes changes
                         if (newNotesCount > 0) {
                             sendPushNotification(
-                                '?? New Study Notes Added!',
+                                '📚 New Study Notes Added!',
                                 newNotesCount + ' new note' + (newNotesCount > 1 ? 's' : '') + ' available'
                             );
+                            // Also send Telegram
+                            sendTelegramNotification('📚 New Study Notes!', newNotesCount + ' new note' + (newNotesCount > 1 ? 's' : '') + ' added to ' + newNotes[0]?.subject);
                         } else if (newNotesCount < 0) {
                             sendPushNotification(
-                                '?? Study Notes Updated',
+                                '📝 Study Notes Updated',
                                 Math.abs(newNotesCount) + ' note' + (Math.abs(newNotesCount) > 1 ? 's' : '') + ' removed'
                             );
                         }
@@ -3166,9 +3241,11 @@
 
                         // Send notification for routine update
                         sendPushNotification(
-                            '?? Today\'s Routine Updated!',
+                            '📅 Today\'s Routine Updated!',
                             'Check the updated class schedule for today'
                         );
+                        // Also send Telegram
+                        sendTelegramNotification('📅 Routine Updated!', 'Class routine has been updated for today');
                     } else {
                         console.log('Supabase returned empty routine, preserving local data');
                         lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
@@ -3191,9 +3268,11 @@
                         // Send notification for new class tests
                         if (newTestsCount > 0) {
                             sendPushNotification(
-                                '?? New Class Test Scheduled!',
+                                '📋 New Class Test Scheduled!',
                                 newTestsCount + ' new class test' + (newTestsCount > 1 ? 's' : '') + ' added'
                             );
+                            // Also send Telegram
+                            sendTelegramNotification('📋 New Class Test!', newTestsCount + ' new class test' + (newTestsCount > 1 ? 's' : '') + ' scheduled');
                         }
                     } else {
                         console.log('Supabase returned empty tests, preserving local data');
@@ -3209,28 +3288,38 @@
                 // Update unread notification badge
                 updateUnreadBadge();
 
-                // Update UI if data changed and user is on the dashboard
-                if (dataChanged && currentPage === 'dashboard') {
-                    renderDashboard();
-                } else if (dataChanged && currentPage === 'notices') {
-                    renderNotices();
-                } else if (dataChanged && currentPage === 'notes') {
-                    renderNotes();
-                } else if (dataChanged && currentPage === 'routine') {
-                    renderRoutine();
-                } else if (dataChanged && currentPage === 'classtest') {
-                    renderClassTests();
+                // Update UI if data changed - ALWAYS re-render when data changes
+                if (dataChanged) {
+                    console.log('[Poll] Data changed, updating UI for:', updateType);
+                    // Always re-render the current page to show updates
+                    if (currentPage === 'dashboard') {
+                        renderDashboard();
+                    } else if (currentPage === 'notices') {
+                        renderNotices();
+                    } else if (currentPage === 'notes') {
+                        renderNotes();
+                    } else if (currentPage === 'routine') {
+                        renderRoutine();
+                    } else if (currentPage === 'classtest') {
+                        renderClassTests();
+                    } else if (currentPage === 'members') {
+                        renderMembers();
+                    }
+                    // Also update dashboard if notice changes
+                    if (updateType === 'notice' || updateType === 'routine' || updateType === 'classtest') {
+                        renderDashboard();
+                    }
                 }
             } catch (error) {
                 console.error('Error polling for updates:', error);
             }
         }
 
-        // Start polling interval (every 10 seconds)
+        // Start polling interval (every 5 seconds for faster updates)
         let pollInterval;
         function startPolling() {
             if (pollInterval) clearInterval(pollInterval);
-            pollInterval = setInterval(pollForUpdates, 10000); // Check every 10 seconds
+            pollInterval = setInterval(pollForUpdates, 5000); // Check every 5 seconds
         }
 
         // Stop polling
@@ -3243,19 +3332,20 @@
 
         // Function to update unread notification badge
         function updateUnreadBadge() {
-            const unreadCount = notices.filter(n => !isNoticeReadByUser(n.id)).length;
-            const badge = document.getElementById('unreadBadge');
-            const dot = document.getElementById('unreadDot');
-            if (badge) {
+            const unreadCount = notices ? notices.filter(n => !isNoticeReadByUser(n.id)).length : 0;
+            // Update all elements with class 'unread-badge'
+            document.querySelectorAll('.unread-badge').forEach(badge => {
                 if (unreadCount > 0) {
                     badge.style.display = 'flex';
                     badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-                    if (dot) dot.style.display = 'block';
                 } else {
                     badge.style.display = 'none';
-                    if (dot) dot.style.display = 'none';
                 }
-            }
+            });
+            // Update all elements with class 'unread-dot'
+            document.querySelectorAll('.unread-dot').forEach(dot => {
+                dot.style.display = unreadCount > 0 ? 'block' : 'none';
+            });
         }
 
         // Save functions - save to both Supabase and localStorage
