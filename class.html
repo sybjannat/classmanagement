@@ -3003,8 +3003,8 @@
         let unreadNotices = true;
 
         // ---------- DATA MANAGEMENT WITH SUPABASE ----------
-        // Check if Supabase is configured
-        const USE_SUPABASE = typeof supabaseClient !== 'undefined' && isSupabaseConfigured && isSupabaseConfigured();
+        // Check if Supabase is configured - ALWAYS enable since we have config
+        const USE_SUPABASE = typeof supabaseClient !== 'undefined' && SUPABASE_URL.includes('supabase.co');
 
         console.log('Supabase config check:', {
             clientExists: typeof supabaseClient !== 'undefined',
@@ -3350,6 +3350,8 @@
             const telegramBotToken = settings.telegramBotToken || '8709813213:AAECnorYy9nMuM0TR6BgM3eQ3zCyGL2G7AI';
             const telegramChatId = settings.telegramChatId || '-1001733013725';
 
+            console.log('[Telegram] Sending to chat:', telegramChatId, 'bot:', telegramBotToken.substring(0, 10) + '...');
+
             if (!telegramBotToken || !telegramChatId) {
                 console.log('Telegram not configured, skipping notification');
                 return;
@@ -3371,6 +3373,7 @@
                     body: formData.toString()
                 });
                 const result = await response.json();
+                console.log('[Telegram] Response:', result);
                 if (result.ok) {
                     console.log('Telegram notification sent successfully');
                 } else {
@@ -3402,31 +3405,33 @@
                         }
                     }
 
-                    // Insert or update notices from localStorage
+                    // Insert or update notices from localStorage - try ALL notices
                     for (const n of notices) {
-                        // Check if notice has a valid ID (either UUID or timestamp-based)
-                        const hasValidId = n.id && (
-                            String(n.id).includes('-') ||
-                            String(n.id).includes('_') ||
-                            (typeof n.id === 'number' && n.id > 1000000000000) // timestamp-based ID
-                        );
+                        if (!n.id) continue; // Skip notices without ID
 
-                        if (hasValidId) {
-                            // Check if exists in Supabase
-                            if (existingIds.has(n.id)) {
-                                // Update existing
+                        const noticeId = n.id.toString();
+
+                        // Check if exists in Supabase
+                        if (existingIds.has(n.id)) {
+                            // Update existing
+                            console.log('[Sync] Updating notice:', n.id, n.title);
+                            try {
                                 await supabaseClient.updateNotice(n.id, {
                                     title: n.title, description: n.description, priority: n.priority,
                                     link: n.link || '', pinned: n.pinned || false, read: n.read || false, expiry: n.expiry || ''
                                 });
-                            } else {
-                                // Insert new
+                            } catch (e) { console.log('[Sync] Update error:', e.message); }
+                        } else {
+                            // Insert new
+                            console.log('[Sync] Adding new notice:', n.id, n.title);
+                            try {
                                 await supabaseClient.addNotice({
+                                    id: noticeId.includes('-') ? n.id : undefined, // Only use custom ID if it's a UUID
                                     title: n.title, description: n.description, priority: n.priority,
                                     link: n.link || '', pinned: n.pinned || false, read: n.read || false, expiry: n.expiry || '',
                                     created_at: n.created_at || new Date().toISOString()
                                 });
-                            }
+                            } catch (e) { console.log('[Sync] Add error:', e.message); }
                         }
                     }
                     console.log('Notices synced to Supabase');
@@ -3449,8 +3454,9 @@
 
             // Send Telegram notification for new notice (always try, regardless of Supabase)
             if (newNoticeData) {
+                console.log('[Telegram] New notice data:', newNoticeData.title);
                 try {
-                    await sendTelegramNotification(newNoticeData.title, newNoticeData.description, newNoticeData.priority);
+                    await sendTelegramNotification(newNoticeData.title, newNoticeData.description || '', newNoticeData.priority);
                 } catch (e) {
                     console.log('Telegram notification error:', e);
                 }
