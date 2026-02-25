@@ -16,40 +16,31 @@
   ],
   "routes": [
     {
-      "src": "^/class\\.html$",
+      "src": "/",
       "dest": "/class.html"
     },
     {
-      "src": "^/$",
+      "src": "/class.html",
       "dest": "/class.html"
     },
     {
-      "src": "^/class$",
+      "src": "/class",
       "dest": "/class.html"
     },
     {
-      "src": "^/manifest\\.json$",
-      "dest": "/manifest.json"
-    },
-    {
-      "src": "^/sw\\.js$",
+      "src": "/sw.js",
       "dest": "/sw.js"
     },
     {
-      "src": "^/(.*)$",
+      "src": "/manifest.json",
+      "dest": "/manifest.json"
+    },
+    {
+      "src": "/(.*)",
       "dest": "/class.html"
     }
   ],
   "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Service-Worker-Allowed",
-          "value": "/"
-        }
-      ]
-    },
     {
       "source": "/sw.js",
       "headers": [
@@ -93,12 +84,12 @@
       "source": "/(.*)",
       "headers": [
         {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
+          "key": "Service-Worker-Allowed",
+          "value": "/"
         },
         {
-          "key": "X-Frame-Options",
-          "value": "DENY"
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
         }
       ]
     }
