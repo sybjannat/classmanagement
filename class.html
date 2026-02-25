@@ -26,18 +26,9 @@
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900&f[]=inter@400,500,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <!-- PWA Manifest -->
-    <script>
-        // Dynamically set manifest href based on current origin
-        document.addEventListener('DOMContentLoaded', function () {
-            var manifestLink = document.querySelector('link[rel="manifest"]');
-            if (manifestLink) {
-                manifestLink.href = window.location.origin + '/manifest.json';
-                console.log('[PWA] Manifest set to:', manifestLink.href);
-            }
-        });
-    </script>
-    <link rel="manifest" href="/manifest.json">
+    <!-- PWA Manifest - Inline as data URL -->
+    <link rel="manifest"
+        href="data:application/manifest+json,{&quot;name&quot;:&quot;YE-48 Class Management&quot;,&quot;short_name&quot;:&quot;YE-48&quot;,&quot;description&quot;:&quot;Class Management System&quot;,&quot;start_url&quot;:&quot;/&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#ffffff&quot;,&quot;theme_color&quot;:&quot;#8B5CF6&quot;,&quot;scope&quot;:&quot;/&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20192%20192'%3E%3Crect%20fill='%238B5CF6'%20rx='32'%20width='192'%20height='192'/%3E%3Ctext%20x='96'%20y='130'%20font-size='80'%20text-anchor='middle'%20fill='white'%3E🎓%3C/text%3E%3C/svg%3E&quot;,&quot;sizes&quot;:&quot;192x192&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;,&quot;purpose&quot;:&quot;any%20maskable&quot;}]}">
     <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%238B5CF6' rx='20' width='100' height='100'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>🎓</text></svg>">
     <link rel="apple-touch-icon"
@@ -2203,6 +2194,56 @@
         };
         try {
             console.log('[App] Page URL:', window.location.href);
+
+            // ==================== INLINE SERVICE WORKER ====================
+            const swCode = `
+                const CACHE_NAME = 'ye48-v4';
+                const STATIC_ASSETS = ['./', './class.html'];
+                
+                self.addEventListener('install', (event) => {
+                    console.log('[SW] Installing...');
+                    event.waitUntil(
+                        caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+                            .then(() => self.skipWaiting())
+                    );
+                });
+                
+                self.addEventListener('activate', (event) => {
+                    console.log('[SW] Activating...');
+                    event.waitUntil(
+                        caches.keys().then((keys) => Promise.all(
+                            keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+                        )).then(() => self.clients.claim())
+                    );
+                });
+                
+                self.addEventListener('fetch', (event) => {
+                    if (event.request.method !== 'GET') return;
+                    event.respondWith(
+                        caches.match(event.request).then((cached) => {
+                            return cached || fetch(event.request).then((response) => {
+                                if (response.ok) {
+                                    const clone = response.clone();
+                                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                                }
+                                return response;
+                            });
+                        })
+                    );
+                });
+                
+                console.log('[SW] Loaded');
+            `;
+
+            // Register inline service worker
+            if ('serviceWorker' in navigator) {
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                console.log('[PWA] Registering inline SW...');
+                navigator.serviceWorker.register(swUrl, { scope: './' })
+                    .then((reg) => console.log('[PWA] SW registered:', reg.scope))
+                    .catch((err) => console.log('[PWA] SW failed:', err));
+            }
 
             // ==================== SUPABASE CLIENT ====================
             const SUPABASE_URL = 'https://igfpnaboighqrivtniji.supabase.co';
