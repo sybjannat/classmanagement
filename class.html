@@ -2221,6 +2221,8 @@
 
         // Check if on mobile and show install button as fallback (iOS Safari doesn't fire beforeinstallprompt)
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
         if (isMobile) {
             const installBtn = document.getElementById('installBtn');
             if (installBtn) installBtn.style.display = 'block';
@@ -2234,26 +2236,48 @@
             const installBtn = document.getElementById('installBtn');
             if (installBtn) installBtn.style.display = 'block';
         });
-        window.addEventListener('appinstalled', () => {
-            console.log('[PWA] Installed');
+
+        // Handle app installed event
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('[PWA] App was installed.', evt);
             deferredPrompt = null;
             const installBtn = document.getElementById('installBtn');
-            if (installBtn) installBtn.style.display = 'none';
+            if (installBtn) {
+                installBtn.innerHTML = '<i class="fas fa-check" style="margin-right:8px;"></i>Installed!';
+                installBtn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+                setTimeout(() => installBtn.style.display = 'none', 3000);
+            }
             initPushNotifications();
         });
+
         function installApp() {
+            const installBtn = document.getElementById('installBtn');
+
             if (deferredPrompt) {
+                // Android/Chrome - use the prompt
+                if (installBtn) installBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Installing...';
                 deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((r) => {
-                    if (r.outcome === 'accepted') {
-                        console.log('[PWA] Accepted');
-                        initPushNotifications();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('[PWA] User accepted the A2HS prompt');
+                    } else {
+                        console.log('[PWA] User dismissed the A2HS prompt');
+                        if (installBtn) installBtn.innerHTML = '<i class="fas fa-download" style="margin-right:8px;"></i>Install App';
                     }
                     deferredPrompt = null;
+                }).catch((err) => {
+                    console.error('[PWA] Error during install:', err);
+                    if (installBtn) installBtn.innerHTML = '<i class="fas fa-download" style="margin-right:8px;"></i>Install App';
                 });
+            } else if (isIOS) {
+                // iOS - show instructions
+                alert('📱 iOS Installation:\n\n1. Tap the Share button (⬆️) at the bottom\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to confirm');
+            } else if (isMobile) {
+                // Android but no prompt - manual instructions
+                alert('📱 To install:\n\n1. Tap the menu (⋮) in the top right\n2. Select "Install App" or "Add to Home Screen"');
             } else {
-                // Fallback: show manual instructions
-                alert('To install: Tap the share button (iOS) or menu (Android) and select "Add to Home Screen"');
+                // Desktop
+                alert('💻 To install on desktop:\n\nUse Chrome or Edge browser, then look for the install icon in the address bar.');
             }
         }
 
