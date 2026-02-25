@@ -1,32 +1,54 @@
 // Service Worker for YE-48 Class Management PWA
-const CACHE_NAME = 'ye48-class-v1';
-const STATIC_CACHE = 'ye48-static-v1';
-const DYNAMIC_CACHE = 'ye48-dynamic-v1';
+const CACHE_NAME = 'ye48-class-v2';
+const STATIC_CACHE = 'ye48-static-v2';
+const DYNAMIC_CACHE = 'ye48-dynamic-v2';
 
-// Assets to cache immediately on install
+// Assets to cache immediately on install - use relative paths for Vercel compatibility
 const STATIC_ASSETS = [
-  '/',
-  '/class.html',
-  '/manifest.json',
-  '/sw.js',
+  './',
+  './class.html',
+  './manifest.json',
+  './sw.js',
   'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%238B5CF6" rx="20" width="100" height="100"/><text x="50" y="65" font-size="50" text-anchor="middle" fill="white">🎓</text></svg>',
   'https://api.fontshare.com/v2/css?f[]=satoshi@900&f[]=inter@400,500,600&display=swap',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css',
+  'https://unpkg.com/aos@2.3.1/dist/aos.css'
 ];
 
-// Install event - cache static assets
+// Install event - cache static assets with fallback
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
         console.log('[Service Worker] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
+        // Try to cache all assets, but continue even if some fail
+        return cache.addAll(STATIC_ASSETS)
+          .then(() => console.log('[Service Worker] All assets cached'))
+          .catch((err) => {
+            console.log('[Service Worker] Some assets failed to cache, trying individually:', err);
+            return cacheAssetsSequentially(cache);
+          });
       })
       .then(() => self.skipWaiting())
-      .catch((err) => console.log('[Service Worker] Cache failed:', err))
+      .catch((err) => console.log('[Service Worker] Cache install failed:', err))
   );
 });
+
+// Helper to cache assets one by one (fallback)
+async function cacheAssetsSequentially(cache) {
+  const results = [];
+  for (const asset of STATIC_ASSETS) {
+    try {
+      await cache.add(asset);
+      console.log('[Service Worker] Cached:', asset);
+      results.push(asset);
+    } catch (e) {
+      console.log('[Service Worker] Failed to cache:', asset, e);
+    }
+  }
+  return results;
+}
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
@@ -46,7 +68,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - implement caching strategies
+// Fetch event - implement caching strategies with better error handling
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -56,6 +78,12 @@ self.addEventListener('fetch', (event) => {
 
   // Skip chrome-extension and other non-http requests
   if (!url.protocol.startsWith('http')) return;
+
+  // Use network-first for HTML pages (class.html), cache-first for static assets
+  if (url.pathname.includes('.html') || url.pathname.endsWith('/')) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
 
   // Cache-first strategy for static assets
   if (isStaticAsset(url.pathname)) {
