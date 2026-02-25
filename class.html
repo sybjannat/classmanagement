@@ -2195,8 +2195,16 @@
     <script>
         console.log('[App] JavaScript starting...');
         window.onerror = function (msg, url, line, col, error) {
-            console.log('[App Error]', msg, 'at line', line);
+            console.log('[App Error]', msg, 'at line', line, 'col', col);
+            // Prevent error from breaking the app
+            return true;
         };
+
+        // Global error handler for unhandled promise rejections
+        window.addEventListener('unhandledrejection', function (event) {
+            console.log('[App] Unhandled rejection:', event.reason);
+            event.preventDefault();
+        });
 
         console.log('[App] Page URL:', window.location.href);
 
@@ -3153,6 +3161,11 @@
                 const newRoutine = routineData || [];
                 const newTests = testsData || [];
 
+                // Debug: Log what we're getting from Supabase
+                console.log('[Poll] Fetched from Supabase - Notices:', newNotices.length, 'Notes:', newNotes.length, 'Routine:', newRoutine.length, 'Tests:', newTests.length);
+                console.log('[Poll] Local hashes - Notices:', lastDataHash.notices ? lastDataHash.notices.substring(0, 50) : 'none', 'Routine:', lastDataHash.todaysRoutine ? lastDataHash.todaysRoutine.substring(0, 50) : 'none');
+                console.log('[Poll] Remote hashes - Notices:', getDataHash(newNotices).substring(0, 50), 'Routine:', getDataHash(newRoutine).substring(0, 50));
+
                 let dataChanged = false;
                 let updateType = '';
 
@@ -3284,23 +3297,27 @@
                 // Update UI if data changed - ALWAYS re-render when data changes
                 if (dataChanged) {
                     console.log('[Poll] Data changed, updating UI for:', updateType);
-                    // Always re-render the current page to show updates
-                    if (currentPage === 'dashboard') {
-                        renderDashboard();
-                    } else if (currentPage === 'notices') {
-                        renderNotices();
-                    } else if (currentPage === 'notes') {
-                        renderNotes();
-                    } else if (currentPage === 'routine') {
-                        renderRoutine();
-                    } else if (currentPage === 'classtest') {
-                        renderClassTests();
-                    } else if (currentPage === 'members') {
-                        renderMembers();
-                    }
-                    // Also update dashboard if notice changes
-                    if (updateType === 'notice' || updateType === 'routine' || updateType === 'classtest') {
-                        renderDashboard();
+                    try {
+                        // Always re-render the current page to show updates
+                        if (currentPage === 'dashboard') {
+                            renderDashboard();
+                        } else if (currentPage === 'notices') {
+                            renderNotices();
+                        } else if (currentPage === 'notes') {
+                            renderNotes();
+                        } else if (currentPage === 'routine') {
+                            renderRoutine();
+                        } else if (currentPage === 'classtest') {
+                            renderClassTests();
+                        } else if (currentPage === 'members') {
+                            renderMembers();
+                        }
+                        // Also update dashboard if notice changes
+                        if (updateType === 'notice' || updateType === 'routine' || updateType === 'classtest') {
+                            renderDashboard();
+                        }
+                    } catch (e) {
+                        console.error('[Poll] Error updating UI:', e);
                     }
                 }
             } catch (error) {
