@@ -3717,7 +3717,7 @@
                     doc.line(margin, ph - 12, pw - margin, ph - 12);
                     doc.setFontSize(8);
                     doc.setTextColor(100, 100, 100);
-                    doc.text('Class Management System � Page 1', pw / 2, ph - 8, { align: 'center' });
+                    doc.text('Class Management System \u2022 Page 1', pw / 2, ph - 8, { align: 'center' });
 
                     doc.addPage();
                     y = 15;
@@ -3767,7 +3767,7 @@
                 } else {
                     doc.setTextColor(150, 150, 400);
                     doc.setFontSize(7);
-                    doc.text('� No link', colLinkX, y + 4.5);
+                    doc.text('\u2022 No link', colLinkX, y + 4.5);
                 }
 
                 y += 12;
@@ -3779,7 +3779,7 @@
             doc.line(margin, ph - 12, pw - margin, ph - 12);
             doc.setFontSize(8);
             doc.setTextColor(100, 100, 100);
-            doc.text('Class Management System � All Notes', pw / 2, ph - 8, { align: 'center' });
+            doc.text('Class Management System \u2022 All Notes', pw / 2, ph - 8, { align: 'center' });
 
             // ---------------------------------------------------------------
             // SUBJECT PAGES
@@ -3815,7 +3815,7 @@
                 // Subject stats
                 doc.setFontSize(9);
                 doc.setTextColor(80, 80, 80);
-                doc.text(`${subjNotes.length} notes � ${linkCount} with links`, pw / 2, 22, { align: 'center' });
+                doc.text(`${subjNotes.length} notes \u2022 ${linkCount} with links`, pw / 2, 22, { align: 'center' });
 
                 // Table header
                 y = 28;
@@ -3888,7 +3888,7 @@
                     } else {
                         doc.setTextColor(150, 150, 400);
                         doc.setFontSize(7);
-                        doc.text('� No link', subjColLinkX, y + 4.5);
+                        doc.text('\u2022 No link', subjColLinkX, y + 4.5);
                     }
 
                     y += 12;
@@ -3900,7 +3900,7 @@
                 doc.line(margin, ph - 12, pw - margin, ph - 12);
                 doc.setFontSize(8);
                 doc.setTextColor(100, 100, 100);
-                doc.text(`Class Management System � ${subjName} � Page ${subjIdx + 2}`, pw / 2, ph - 8, { align: 'center' });
+                doc.text(`Class Management System \u2022 ${subjName} \u2022 Page ${subjIdx + 2}`, pw / 2, ph - 8, { align: 'center' });
             });
 
             // Save
@@ -5883,7 +5883,7 @@
             if (mobileLogoText) mobileLogoText.textContent = websiteSettings.websiteName;
 
             // Update page title
-            document.title = `${websiteSettings.websiteName} � Class Management`;
+            document.title = `${websiteSettings.websiteName} - Class Management`;
         }
 
         // Initialize logo on page load
