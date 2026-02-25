@@ -2915,25 +2915,24 @@
             const saved = localStorage.getItem('userReadNotices');
             if (saved) {
                 JSON.parse(saved).forEach(id => userReadNotices.add(id));
+                console.log('[ReadStatus] Loaded from localStorage:', userReadNotices.size, 'notices');
             }
         } catch (e) { console.log('Could not load local read status:', e); }
 
-        // Load user-specific notice read status from Supabase
+        // Load user-specific notice read status from Supabase (for logged-in users)
         async function loadUserReadNotices(force = false) {
-            if (!currentUser || !currentUser.id) return;
+            // Always save current state first
+            try { localStorage.setItem('userReadNotices', JSON.stringify([...userReadNotices])); } catch (e) { }
 
-            // Save to localStorage as backup
-            function saveToLocal() {
-                try { localStorage.setItem('userReadNotices', JSON.stringify([...userReadNotices])); } catch (e) { }
+            // Only load from Supabase if user is logged in
+            if (!currentUser || !currentUser.id) {
+                console.log('[ReadStatus] No user logged in, using localStorage only');
+                return;
             }
-
-            // First save current state to localStorage
-            saveToLocal();
 
             if (!USE_SUPABASE) return;
             try {
                 const readStatus = await supabaseClient.getNoticeReadStatus(null, currentUser.id);
-                // Only clear and reload if force is true or we have new data
                 const newReadIds = new Set();
                 if (readStatus && Array.isArray(readStatus)) {
                     readStatus.forEach(status => {
@@ -2941,24 +2940,16 @@
                     });
                 }
 
-                // Check if anything changed
-                let changed = force || newReadIds.size !== userReadNotices.size;
-                if (!changed) {
-                    for (const id of newReadIds) {
-                        if (!userReadNotices.has(id)) {
-                            changed = true;
-                            break;
-                        }
-                    }
-                }
-
+                // Merge: keep local AND add from Supabase
+                let changed = force || newReadIds.size > 0;
                 if (changed) {
-                    userReadNotices.clear();
                     newReadIds.forEach(id => userReadNotices.add(id));
-                    console.log('Loaded read status for user:', userReadNotices.size, 'notices read');
+                    console.log('[ReadStatus] Loaded from Supabase:', newReadIds.size, 'notices, total:', userReadNotices.size);
+                    // Save merged result
+                    try { localStorage.setItem('userReadNotices', JSON.stringify([...userReadNotices])); } catch (e) { }
                 }
             } catch (e) {
-                console.log('Could not load read status:', e);
+                console.log('[ReadStatus] Could not load from Supabase:', e);
             }
         }
 
@@ -3397,7 +3388,12 @@
                     // Get existing notices from Supabase
                     const existing = await supabaseClient.getNotices();
                     const existingIds = new Set(existing.map(n => n.id));
-                    const localIds = new Set(notices.map(n => n.id).filter(id => id && (String(id).includes('-') || String(id).includes('_'))));
+                    // Include both UUID-based and timestamp-based IDs
+                    const localIds = new Set(notices.map(n => n.id).filter(id => id && (
+                        String(id).includes('-') ||
+                        String(id).includes('_') ||
+                        (typeof id === 'number' && id > 1000000000000)
+                    )));
 
                     // Delete notices that are in Supabase but not in localStorage
                     for (const n of existing) {
@@ -3408,7 +3404,14 @@
 
                     // Insert or update notices from localStorage
                     for (const n of notices) {
-                        if (n.id && (String(n.id).includes('-') || String(n.id).includes('_'))) {
+                        // Check if notice has a valid ID (either UUID or timestamp-based)
+                        const hasValidId = n.id && (
+                            String(n.id).includes('-') ||
+                            String(n.id).includes('_') ||
+                            (typeof n.id === 'number' && n.id > 1000000000000) // timestamp-based ID
+                        );
+
+                        if (hasValidId) {
                             // Check if exists in Supabase
                             if (existingIds.has(n.id)) {
                                 // Update existing
@@ -7037,6 +7040,9 @@
 
             // Start polling for real-time updates
             startPolling();
+
+            // Load user's read status from Supabase if logged in
+            loadUserReadNotices(true);
 
             // Check if user is logged in
             const savedUser = localStorage.getItem('currentUser');
