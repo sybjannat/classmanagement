@@ -3137,7 +3137,7 @@
             return JSON.stringify(data);
         }
 
-        async function pollForUpdates() {
+        async function pollForUpdates(isFromUserSave = false) {
             if (!USE_SUPABASE || !navigator.onLine) return;
 
             try {
@@ -3169,8 +3169,8 @@
                         updateType = 'notice';
                         console.log('Notices updated from Supabase!');
 
-                        // Send notification for new notices
-                        if (newNoticeCount > 0 && newNotices[0]) {
+                        // Send notification for new notices (only when CR saves, not when syncing)
+                        if (newNoticeCount > 0 && newNotices[0] && isFromUserSave) {
                             sendPushNotification(
                                 '📢 New Notice Posted!',
                                 newNotices[0].title + (newNoticeCount > 1 ? ` (+${newNoticeCount - 1} more)` : '')
@@ -3197,15 +3197,15 @@
                         updateType = 'notes';
                         console.log('Notes updated from Supabase!');
 
-                        // Send notification for notes changes
-                        if (newNotesCount > 0) {
+                        // Send notification for notes changes (only when CR saves, not when syncing)
+                        if (newNotesCount > 0 && isFromUserSave) {
                             sendPushNotification(
                                 '📚 New Study Notes Added!',
                                 newNotesCount + ' new note' + (newNotesCount > 1 ? 's' : '') + ' available'
                             );
                             // Also send Telegram
                             sendTelegramNotification('📚 New Study Notes!', newNotesCount + ' new note' + (newNotesCount > 1 ? 's' : '') + ' added to ' + newNotes[0]?.subject);
-                        } else if (newNotesCount < 0) {
+                        } else if (newNotesCount < 0 && isFromUserSave) {
                             sendPushNotification(
                                 '📝 Study Notes Updated',
                                 Math.abs(newNotesCount) + ' note' + (Math.abs(newNotesCount) > 1 ? 's' : '') + ' removed'
@@ -3230,13 +3230,15 @@
                         updateType = 'routine';
                         console.log('Routine updated from Supabase!');
 
-                        // Send notification for routine update
-                        sendPushNotification(
-                            '📅 Today\'s Routine Updated!',
-                            'Check the updated class schedule for today'
-                        );
-                        // Also send Telegram
-                        sendTelegramNotification('📅 Routine Updated!', 'Class routine has been updated for today');
+                        // Send notification for routine update (only when CR saves, not when syncing)
+                        if (isFromUserSave) {
+                            sendPushNotification(
+                                '📅 Today\'s Routine Updated!',
+                                'Check the updated class schedule for today'
+                            );
+                            // Also send Telegram
+                            sendTelegramNotification('📅 Routine Updated!', 'Class routine has been updated for today');
+                        }
                     } else {
                         console.log('Supabase returned empty routine, preserving local data');
                         lastDataHash.todaysRoutine = getDataHash(todaysRoutine);
@@ -3256,8 +3258,8 @@
                         updateType = 'classtest';
                         console.log('Class tests updated from Supabase!');
 
-                        // Send notification for new class tests
-                        if (newTestsCount > 0) {
+                        // Send notification for new class tests (only when CR saves, not when syncing)
+                        if (newTestsCount > 0 && isFromUserSave) {
                             sendPushNotification(
                                 '📋 New Class Test Scheduled!',
                                 newTestsCount + ' new class test' + (newTestsCount > 1 ? 's' : '') + ' added'
@@ -3348,29 +3350,31 @@
             } catch (e) { }
 
             const telegramBotToken = settings.telegramBotToken || '8709813213:AAECnorYy9nMuM0TR6BgM3eQ3zCyGL2G7AI';
-            const telegramChatId = settings.telegramChatId || '-1001733013725';
+            const telegramChatId = settings.telegramChatId || '';
 
-            console.log('[Telegram] Sending to chat:', telegramChatId, 'bot:', telegramBotToken.substring(0, 10) + '...');
+            // Ensure chat_id is a string
+            const chatIdStr = String(telegramChatId);
+            console.log('[Telegram] Sending to chat:', chatIdStr, 'bot:', telegramBotToken.substring(0, 10) + '...');
 
-            if (!telegramBotToken || !telegramChatId) {
-                console.log('Telegram not configured, skipping notification');
+            if (!telegramBotToken || !chatIdStr) {
+                console.log('Telegram not configured - please set chat ID in settings');
+                alert('Telegram not configured! Please go to Settings and enter your Telegram Bot Token and Chat ID.');
                 return;
             }
 
             const messageText = `${title}\n\n${description || ''}`;
 
-            // Use form data for better encoding
-            const formData = new URLSearchParams();
-            formData.append('chat_id', telegramChatId);
-            formData.append('text', messageText);
-
+            // Use JSON body
             try {
                 const response = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Content-Type': 'application/json',
                     },
-                    body: formData.toString()
+                    body: JSON.stringify({
+                        chat_id: chatIdStr,
+                        text: messageText
+                    })
                 });
                 const result = await response.json();
                 console.log('[Telegram] Response:', result);
@@ -3378,9 +3382,11 @@
                     console.log('Telegram notification sent successfully');
                 } else {
                     console.error('Telegram API error:', result);
+                    alert('Telegram error: ' + result.description + '. Check console for details.');
                 }
             } catch (e) {
                 console.error('Error sending Telegram notification:', e);
+                alert('Network error sending Telegram notification. Check console for details.');
             }
         }
 
@@ -3463,7 +3469,7 @@
             }
         }
 
-        async function saveNotes() {
+        async function saveNotes(isNewNote = false, newNoteData = null) {
             localStorage.setItem('notes', JSON.stringify(notes));
             if (USE_SUPABASE) {
                 try {
@@ -3499,6 +3505,11 @@
                         }
                     }
                     console.log('Notes synced to Supabase');
+
+                    // Send Telegram notification for new note
+                    if (isNewNote && newNoteData) {
+                        sendTelegramNotification('📚 New Study Notes!', newNoteData.title + ' added to ' + newNoteData.subject);
+                    }
                 } catch (e) { console.error('Error saving notes:', e); }
             }
         }
@@ -3553,6 +3564,9 @@
                         });
                     }
                     console.log('Routine saved to Supabase');
+
+                    // Send Telegram notification for routine update
+                    sendTelegramNotification('📅 Routine Updated!', 'Class routine has been updated for today');
                 } catch (e) { console.error('Error saving routine:', e); }
             }
         }
