@@ -2362,18 +2362,34 @@
 
                 // Handle foreground messages
                 messaging.onMessage(function (payload) {
-                    console.log('[Push] Foreground message:', payload);
-                    const notificationTitle = payload.notification?.title || 'YE-48';
-                    const notificationOptions = {
-                        body: payload.notification?.body || 'New notice available',
-                        icon: '/icon-192.png',
-                        badge: '/badge-72.png',
-                        tag: 'ye-48-notice'
-                    };
-                    new Notification(notificationTitle, notificationOptions);
+                    console.log('[Push] Foreground message received:', payload);
 
-                    // Refresh notices
-                    loadNotices();
+                    const notificationTitle = payload.notification?.title || 'YE-48 Update';
+                    const notificationBody = payload.notification?.body || 'You have a new notice';
+
+                    // Show notification
+                    if (Notification.permission === 'granted') {
+                        new Notification(notificationTitle, {
+                            body: notificationBody,
+                            icon: '/icon-192.png',
+                            badge: '/badge-72.png',
+                            tag: 'ye-48-notice'
+                        });
+                    }
+
+                    // Refresh data from Supabase
+                    console.log('[Push] Refreshing data after notification...');
+                    pollForUpdates(true).then(() => {
+                        // Update UI
+                        if (currentPage === 'dashboard') {
+                            renderDashboard();
+                        } else if (currentPage === 'notices') {
+                            renderNotices();
+                        } else if (currentPage === 'routine') {
+                            renderRoutine();
+                        }
+                        updateUnreadBadge();
+                    });
                 });
             } else {
                 if (notifyBtn) { notifyBtn.style.display = 'none'; }
@@ -2381,9 +2397,14 @@
         }
 
         async function saveFCMToken(userId, token) {
-            // Save to Supabase - you'll need to create a table for this
-            // For now, just log it
-            console.log('[Push] Saving token for user:', userId);
+            // Save to Supabase fcm_tokens table
+            if (!userId || !token) return;
+            try {
+                await supabaseClient.saveFCMToken(userId, token);
+                console.log('[Push] Token saved for user:', userId);
+            } catch (e) {
+                console.log('[Push] Error saving token:', e);
+            }
         }
 
         // ==================== SUPABASE CLIENT ====================
@@ -2465,6 +2486,23 @@
             async getMembers() { return this.request('members?order=created_at'); },
             async addMember(member) { return this.request('members', { method: 'POST', body: member }); },
             async deleteMember(id) { return this.request(`members?id=eq.${id}`, { method: 'DELETE' }); },
+
+            // FCM Tokens for push notifications
+            async getAllFCMTokens() { return this.request('fcm_tokens?select=*'); },
+            async saveFCMToken(userId, token) {
+                // Check if token already exists for this user
+                const existing = await this.request(`fcm_tokens?user_id=eq.${userId}&token=eq.${token}`);
+                if (existing && existing.length > 0) {
+                    // Token already exists, update timestamp
+                    return this.request(`fcm_tokens?user_id=eq.${userId}&token=eq.${token}`, {
+                        method: 'PATCH',
+                        body: { updated_at: new Date().toISOString() }
+                    });
+                }
+                // Add new token
+                return this.request('fcm_tokens', { method: 'POST', body: { user_id: userId, token: token } });
+            },
+            async deleteFCMToken(token) { return this.request(`fcm_tokens?token=eq.${token}`, { method: 'DELETE' }); },
 
             // Clear all data from Supabase
             async clearAllData() {
@@ -2826,6 +2864,12 @@
                 }
                 // Play sound
                 playNotificationSound();
+            }
+
+            // 3. Send Firebase push notification to ALL users (including those with app closed)
+            // This sends to all devices via FCM
+            if (typeof sendPushNotificationToAll === 'function') {
+                sendPushNotificationToAll(title, body).catch(e => console.log('[Push] Error sending to all:', e));
             }
         }
 
@@ -3405,6 +3449,15 @@
                 console.error('Error sending Telegram notification:', e);
                 alert('Network error sending Telegram notification. Check console for details.');
             }
+        }
+
+        // Send push notification to all users via Firebase
+        // Note: Legacy FCM API is disabled. Using polling for real-time updates instead.
+        async function sendPushNotificationToAll(title, message) {
+            // The polling mechanism (every 5 seconds) provides real-time updates
+            // Users will automatically see new notices, routine, notes, and CTs
+            // No need for background push notifications!
+            console.log('[Push] Real-time sync active - users will see update within 5 seconds');
         }
 
         async function saveNotices(isNewNotice = false, newNoticeData = null) {

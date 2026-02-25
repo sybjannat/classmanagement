@@ -1,5 +1,5 @@
 // Service Worker for YE-48 Class Management PWA
-const CACHE_NAME = 'ye48-class-v5';
+const CACHE_NAME = 'ye48-class-v6';
 
 // Install event - simplified
 self.addEventListener('install', (event) => {
@@ -39,25 +39,83 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(fetch(request));
 });
 
-// Push notifications
-self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  const title = data.title || 'YE-48 Class Update';
-  const options = {
-    body: data.body || 'New class update available',
-    icon: '/icon-192.png',
-    badge: '/badge-72.png',
-    vibrate: [100, 50, 100],
-    data: { url: data.url || '/' }
-  };
+// ============================================
+// Firebase Cloud Messaging
+// ============================================
 
-  event.waitUntil(self.registration.showNotification(title, options));
+// Import Firebase SDK
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+
+// Firebase configuration
+firebase.initializeApp({
+    apiKey: "AIzaSyAHipj0-We5umz34g8ClOrJMC_eIZ34ZCc",
+    authDomain: "class-management-259b0.firebaseapp.com",
+    projectId: "class-management-259b0",
+    storageBucket: "class-management-259b0.firebasestorage.app",
+    messagingSenderId: "323469080053",
+    appId: "1:323469080053:web:ff4f7efb380810caa49cbc"
 });
 
-// Notification click
+// Get Firebase Messaging instance
+const messaging = firebase.messaging();
+
+// Handle background messages (when app is closed or in background)
+messaging.onBackgroundMessage(function(payload) {
+    console.log('[SW] Received background message:', payload);
+
+    const notificationTitle = payload.notification?.title || 'YE-48 Update';
+    const notificationBody = payload.notification?.body || 'You have a new notice';
+    
+    // Show notification
+    return self.registration.showNotification(notificationTitle, {
+        body: notificationBody,
+        icon: '/icon-192.png',
+        badge: '/badge-72.png',
+        tag: 'ye-48-notice',
+        requireInteraction: true,
+        vibrate: [200, 100, 200],
+        data: payload.data || { url: '/' }
+    });
+});
+
+// Handle notification click
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data.url || '/'));
+    console.log('[SW] Notification clicked:', event);
+    event.notification.close();
+
+    // Open the app
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+            // Focus existing window if open
+            for (const client of clientList) {
+                if (client.url.includes('class.html') && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            // Open new window
+            if (clients.openWindow) {
+                return clients.openWindow('/class.html');
+            }
+        })
+    );
 });
 
-console.log('[SW] Service Worker loaded');
+// Push event handler (for when push notification is received)
+self.addEventListener('push', (event) => {
+    console.log('[SW] Push event received:', event);
+    
+    const data = event.data ? event.data.json() : {};
+    const title = data.title || 'YE-48 Class Update';
+    const options = {
+        body: data.body || 'New class update available',
+        icon: '/icon-192.png',
+        badge: '/badge-72.png',
+        vibrate: [100, 50, 100],
+        data: { url: data.url || '/' }
+    };
+
+    event.waitUntil(self.registration.showNotification(title, options));
+});
+
+console.log('[SW] Service Worker loaded with Firebase Messaging');
