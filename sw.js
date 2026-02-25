@@ -3,12 +3,12 @@ const CACHE_NAME = 'ye48-class-v3';
 const STATIC_CACHE = 'ye48-static-v3';
 const DYNAMIC_CACHE = 'ye48-dynamic-v3';
 
-// Assets to cache - keep it simple for Vercel
+// Assets to cache - keep it simple
 const STATIC_ASSETS = [
-  '/',
-  '/class.html',
-  '/manifest.json',
-  '/sw.js'
+  './',
+  './class.html',
+  './manifest.json',
+  './sw.js'
 ];
 
 // Install event
