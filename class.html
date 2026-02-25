@@ -6694,6 +6694,13 @@
 
         // Notification bell click handler
         document.addEventListener('DOMContentLoaded', function () {
+            // Debug: Check if files are accessible
+            console.log('[Debug] Current URL:', window.location.href);
+            console.log('[Debug] Origin:', window.location.origin);
+
+            fetch('/manifest.json').then(r => console.log('[Debug] manifest.json status:', r.status)).catch(e => console.log('[Debug] manifest.json error:', e));
+            fetch('/sw.js').then(r => console.log('[Debug] sw.js status:', r.status)).catch(e => console.log('[Debug] sw.js error:', e));
+
             // Register Service Worker for PWA
             if ('serviceWorker' in navigator) {
                 console.log('[PWA] ServiceWorker supported');
