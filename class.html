@@ -2134,6 +2134,8 @@
                     <div class="notification-bell" onclick="currentPage='notices';renderNotices();">
                         <i class="far fa-bell"></i>
                         <span class="notification-badge" id="unreadBadge" style="display: none;">0</span>
+                        <span id="unreadDot"
+                            style="display: none; position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; background: #EF4444; border-radius: 50%;"></span>
                     </div>
                     <button onclick="document.getElementById('authModal').style.display='flex'"
                         style="background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 8px 16px; border-radius: 20px; color: white; cursor: pointer; font-weight: 600; margin-right: 12px; display: flex; align-items: center; gap: 8px;">
@@ -2279,56 +2281,6 @@
                     localStorage.setItem('pushSubscription', JSON.stringify(sub));
                 } catch (e) { console.log('[Push] Subscribe error:', e); }
             }
-        }
-
-        // ==================== INLINE SERVICE WORKER ====================
-        const swCode = `
-                const CACHE_NAME = 'ye48-v4';
-                const STATIC_ASSETS = ['./', './class.html'];
-                
-                self.addEventListener('install', (event) => {
-                    console.log('[SW] Installing...');
-                    event.waitUntil(
-                        caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-                            .then(() => self.skipWaiting())
-                    );
-                });
-                
-                self.addEventListener('activate', (event) => {
-                    console.log('[SW] Activating...');
-                    event.waitUntil(
-                        caches.keys().then((keys) => Promise.all(
-                            keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-                        )).then(() => self.clients.claim())
-                    );
-                });
-                
-                self.addEventListener('fetch', (event) => {
-                    if (event.request.method !== 'GET') return;
-                    event.respondWith(
-                        caches.match(event.request).then((cached) => {
-                            return cached || fetch(event.request).then((response) => {
-                                if (response.ok) {
-                                    const clone = response.clone();
-                                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-                                }
-                                return response;
-                            });
-                        })
-                    );
-                });
-                
-                console.log('[SW] Loaded');
-            `;
-
-        // Register inline service worker
-        if ('serviceWorker' in navigator) {
-            const blob = new Blob([swCode], { type: 'application/javascript' });
-            const swUrl = URL.createObjectURL(blob);
-            console.log('[PWA] Registering inline SW...');
-            navigator.serviceWorker.register(swUrl, { scope: './' })
-                .then((reg) => console.log('[PWA] SW registered:', reg.scope))
-                .catch((err) => console.log('[PWA] SW failed:', err));
         }
 
         // ==================== SUPABASE CLIENT ====================
@@ -2938,6 +2890,26 @@
                     }
                 }
             }
+            // Update all badge displays
+            updateAllBadges();
+        }
+
+        // Update all unread badges in the app
+        function updateAllBadges() {
+            const unreadCount = notices ? notices.filter(n => !isNoticeReadByUser(n.id)).length : 0;
+            // Update all elements with class 'unread-badge'
+            document.querySelectorAll('.unread-badge').forEach(badge => {
+                if (unreadCount > 0) {
+                    badge.style.display = 'flex';
+                    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+            // Update all elements with class 'unread-dot'
+            document.querySelectorAll('.unread-dot').forEach(dot => {
+                dot.style.display = unreadCount > 0 ? 'block' : 'none';
+            });
         }
 
         let currentTerm = 'Level 3 Term 2';
@@ -6065,6 +6037,7 @@
                         <div class="notification-bell" onclick="currentPage='notices';renderNotices();">
                             <i class="far fa-bell"></i>
                             <span class="notification-badge" id="unreadBadge" style="display: none;">0</span>
+                            <span id="unreadDot" style="display: none; position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; background: #EF4444; border-radius: 50%;"></span>
                         </div>
                         <div onclick="showProfileModal()"
                             style="width: 44px; height: 44px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; cursor: pointer; margin-right: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
