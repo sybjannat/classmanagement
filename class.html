@@ -6683,8 +6683,14 @@
         document.addEventListener('DOMContentLoaded', function () {
             // Register Service Worker for PWA
             if ('serviceWorker' in navigator) {
+                console.log('ServiceWorker supported, registering...');
+
+                // Get the base URL for service worker
+                const swPath = '/sw.js';
+                console.log('Attempting to register ServiceWorker at:', swPath);
+
                 window.addEventListener('load', function () {
-                    navigator.serviceWorker.register('./sw.js')
+                    navigator.serviceWorker.register(swPath, { scope: '/' })
                         .then(function (registration) {
                             console.log('ServiceWorker registration successful:', registration.scope);
                         })
@@ -6692,6 +6698,8 @@
                             console.log('ServiceWorker registration failed:', error);
                         });
                 });
+            } else {
+                console.log('ServiceWorker not supported in this browser');
             }
 
             // Handle online/offline events for polling
