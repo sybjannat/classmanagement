@@ -2202,19 +2202,58 @@
                 indicator = document.createElement('div');
                 indicator.id = 'pull-refresh';
                 indicator.innerHTML = '<i class="fas fa-arrow-down"></i> Pull to refresh';
-                indicator.style.cssText = 'position:fixed;top:-60px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#8B5CF6,#EC4899);color:#fff;padding:12px 24px;border-radius:30px;font-weight:600;z-index:9999;transition:top 0.3s;box-shadow:0 4px 20px rgba(139,92,246,0.4);display:flex;align-items:center;gap:8px;';
+                // Responsive: use viewport units for mobile-first design
+                indicator.style.cssText = 'position:fixed;top:calc(-80px);left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#3B82F6,#8B5CF6,#EF4444);color:#fff;padding:14px 28px;border-radius:30px;font-weight:600;z-index:9999;transition:top 0.3s;box-shadow:0 4px 20px rgba(139,92,246,0.4);display:flex;align-items:center;gap:8px;font-size:clamp(14px, 4vw, 16px);';
                 document.body.appendChild(indicator);
             });
+            // Responsive: pull distance based on viewport height
+            const pullDistance = Math.max(60, window.innerHeight * 0.08);
+            const showPosition = Math.max(20, window.innerHeight * 0.08);
             document.addEventListener('touchstart', function (e) { if (window.scrollY === 0) startY = e.touches[0].clientY; }, { passive: true });
-            document.addEventListener('touchmove', function (e) { if (window.scrollY === 0 && startY > 0) { var diff = e.touches[0].clientY - startY; if (diff > 60) { isPulling = true; indicator.style.top = '20px'; } } }, { passive: true });
-            document.addEventListener('touchend', function () { if (isPulling) { indicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...'; location.reload(); } isPulling = false; startY = 0; indicator.style.top = '-60px'; });
+            document.addEventListener('touchmove', function (e) { if (window.scrollY === 0 && startY > 0) { var diff = e.touches[0].clientY - startY; if (diff > pullDistance) { isPulling = true; indicator.style.top = showPosition + 'px'; } } }, { passive: true });
+            document.addEventListener('touchend', function () { if (isPulling) { indicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...'; location.reload(); } isPulling = false; startY = 0; indicator.style.top = '-80px'; });
         })();
 
         // PWA Install Prompt
         let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; console.log('[PWA] Install prompt ready'); });
-        window.addEventListener('appinstalled', () => { console.log('[PWA] Installed'); deferredPrompt = null; initPushNotifications(); });
-        function installApp() { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((r) => { if (r.outcome === 'accepted') { console.log('[PWA] Accepted'); initPushNotifications(); } deferredPrompt = null; }); } }
+
+        // Check if on mobile and show install button as fallback (iOS Safari doesn't fire beforeinstallprompt)
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+            const installBtn = document.getElementById('installBtn');
+            if (installBtn) installBtn.style.display = 'block';
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('[PWA] Install prompt ready');
+            // Show install button when prompt is available
+            const installBtn = document.getElementById('installBtn');
+            if (installBtn) installBtn.style.display = 'block';
+        });
+        window.addEventListener('appinstalled', () => {
+            console.log('[PWA] Installed');
+            deferredPrompt = null;
+            const installBtn = document.getElementById('installBtn');
+            if (installBtn) installBtn.style.display = 'none';
+            initPushNotifications();
+        });
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((r) => {
+                    if (r.outcome === 'accepted') {
+                        console.log('[PWA] Accepted');
+                        initPushNotifications();
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                // Fallback: show manual instructions
+                alert('To install: Tap the share button (iOS) or menu (Android) and select "Add to Home Screen"');
+            }
+        }
 
         // Push Notifications - Request permission and enable
         async function initPushNotifications() {
@@ -7081,7 +7120,7 @@
 
             <!-- Install App Button -->
             <button id="installBtn" onclick="installApp()"
-                style="display: none; width: 100%; margin-top: 16px; padding: 14px; background: linear-gradient(135deg, #8B5CF6, #6366F1); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);">
+                style="width: 100%; margin-top: 16px; padding: 14px; background: linear-gradient(135deg, #8B5CF6, #6366F1); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);">
                 <i class="fas fa-download" style="margin-right: 8px;"></i>Install App
             </button>
 
