@@ -2213,8 +2213,34 @@
         // PWA Install Prompt
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; console.log('[PWA] Install prompt ready'); });
-        window.addEventListener('appinstalled', () => { console.log('[PWA] Installed'); deferredPrompt = null; });
-        function installApp() { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((r) => { if (r.outcome === 'accepted') console.log('[PWA] Accepted'); deferredPrompt = null; }); } }
+        window.addEventListener('appinstalled', () => { console.log('[PWA] Installed'); deferredPrompt = null; initPushNotifications(); });
+        function installApp() { if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then((r) => { if (r.outcome === 'accepted') { console.log('[PWA] Accepted'); initPushNotifications(); } deferredPrompt = null; }); } }
+
+        // Push Notifications - Request permission and enable
+        async function initPushNotifications() {
+            if (!('Notification' in window)) { console.log('[Push] Not supported'); return; }
+            const perm = await Notification.requestPermission();
+            console.log('[Push] Permission:', perm);
+
+            // Show/hide notification button based on permission
+            const notifyBtn = document.getElementById('notifyBtn');
+            if (perm === 'granted') {
+                if (notifyBtn) { notifyBtn.innerHTML = '<i class="fas fa-bell-slash" style="margin-right:8px;"></i>Notifications Enabled'; notifyBtn.disabled = true; notifyBtn.style.opacity = '0.7'; }
+            } else {
+                if (notifyBtn) { notifyBtn.style.display = 'none'; }
+            }
+
+            if (perm === 'granted' && 'serviceWorker' in navigator) {
+                const reg = await navigator.serviceWorker.ready;
+                console.log('[Push] Ready for notifications');
+                // Subscribe to push (would need a push server for real push)
+                try {
+                    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true });
+                    console.log('[Push] Subscribed:', sub.endpoint);
+                    localStorage.setItem('pushSubscription', JSON.stringify(sub));
+                } catch (e) { console.log('[Push] Subscribe error:', e); }
+            }
+        }
 
         // ==================== INLINE SERVICE WORKER ====================
         const swCode = `
@@ -7059,6 +7085,12 @@
                 <i class="fas fa-download" style="margin-right: 8px;"></i>Install App
             </button>
 
+            <!-- Enable Notifications Button -->
+            <button id="notifyBtn" onclick="initPushNotifications()"
+                style="display: none; width: 100%; margin-top: 12px; padding: 14px; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);">
+                <i class="fas fa-bell" style="margin-right: 8px;"></i>Enable Notifications
+            </button>
+
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
                 <button onclick="logout()"
                     style="width: 100%; padding: 14px; background: #FEF2F2; border: 1px solid #EF4444; border-radius: 12px; cursor: pointer; font-weight: 600; color: #DC2626;">
@@ -7227,6 +7259,12 @@
             document.getElementById('profileNewPassword').value = '';
             document.getElementById('profileError').style.display = 'none';
             document.getElementById('profileModal').style.display = 'flex';
+
+            // Show notification button if not granted
+            const notifyBtn = document.getElementById('notifyBtn');
+            if (notifyBtn && Notification && Notification.permission !== 'granted') {
+                notifyBtn.style.display = 'block';
+            }
         }
 
         async function updateProfile() {
