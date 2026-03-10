@@ -5489,9 +5489,21 @@
         }
 
         function renderNotes() {
-            const subjectCounts = subjects.map(s => ({
+            // Get unique subjects - deduplicate by normalized name to avoid showing same subject twice
+            const allSubjectStrings = [...subjects, ...notes.map(n => n.subject).filter(s => s)];
+            const subjectMap = {};
+            allSubjectStrings.forEach(s => {
+                const normalized = getCourseTitle(s);
+                if (!subjectMap[normalized]) {
+                    subjectMap[normalized] = s; // Keep first occurrence as canonical
+                }
+            });
+            let uniqueSubjects = Object.values(subjectMap);
+
+            const subjectCounts = uniqueSubjects.map(s => ({
                 name: s,
-                count: notes.filter(n => n.subject === s).length
+                displayName: getCourseTitle(s),
+                count: notes.filter(n => n.subject === s || getCourseTitle(n.subject) === getCourseTitle(s)).length
             })).filter(s => s.count > 0);
 
             // Show empty state if no notes
@@ -5540,19 +5552,22 @@
                 </div>
                 ` : ''}
                 
-                <!-- Subject Filter Pills -->
-                <div class="flex flex-row filter-container" style="gap: 8px; flex-wrap: wrap; margin-bottom: 32px; flex-direction: row; width: 100%; overflow-x: visible;">
-                    <span class="subject-pill subject-all" onclick="setNoteFilter('all')" style="padding: 8px 16px; background: ${currentNoteFilter === 'all' ? 'linear-gradient(135deg, #6366F1, #8B5CF6)' : 'white'}; color: ${currentNoteFilter === 'all' ? 'white' : '#6366F1'}; border: 2px solid #6366F1; cursor: pointer; border-radius: 30px; font-size: 0.85rem;">All</span>
-                    ${subjectCounts.map(s => `
-                        <span class="subject-pill subject-${getCourseTitle(s.name).toLowerCase()}" onclick="setNoteFilter('${s.name}')" style="padding: 8px 16px; background: ${currentNoteFilter === s.name ? 'linear-gradient(135deg, #6366F1, #8B5CF6)' : 'white'}; color: ${currentNoteFilter === s.name ? 'white' : '#6366F1'}; border: 2px solid #6366F1; cursor: pointer; border-radius: 30px; font-size: 0.85rem;">${getCourseTitle(s.name)} <span style="opacity: 0.8; font-size: 0.8em;">(${s.count})</span></span>
-                    `).join('')}
+                <!-- Subject Filter Dropdown -->
+                <div style="margin-bottom: 32px; display: flex; align-items: center; gap: 12px;">
+                    <label style="font-weight: 600; color: #64748B; font-size: 0.9rem;">Filter by Subject:</label>
+                    <select id="subjectFilterDropdown" onchange="setNoteFilter(this.value)" style="padding: 10px 16px; border-radius: 12px; border: 2px solid #E2E8F0; background: white; color: #1E293B; font-size: 0.9rem; cursor: pointer; min-width: 200px; outline: none;">
+                        <option value="all" ${currentNoteFilter === 'all' ? 'selected' : ''}>All Subjects (${notes.length})</option>
+                        ${subjectCounts.map(s => `
+                            <option value="${s.name}" ${currentNoteFilter === s.name ? 'selected' : ''}>${getCourseTitle(s.name)} (${s.count})</option>
+                        `).join('')}
+                    </select>
                 </div>
                 
             </div>
             
             <!-- Notes Grid - Modern Card Layout -->
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;">
-                ${((currentNoteFilter === 'all' ? notes : notes.filter(n => n.subject === currentNoteFilter)).filter(n => !currentNoteSearch || n.title.toLowerCase().includes(currentNoteSearch) || (n.description && n.description.toLowerCase().includes(currentNoteSearch)))).map((n, index) => `
+                ${((currentNoteFilter === 'all' ? notes : notes.filter(n => currentNoteFilter === 'all' || getCourseTitle(n.subject) === getCourseTitle(currentNoteFilter))).filter(n => !currentNoteSearch || n.title.toLowerCase().includes(currentNoteSearch) || (n.description && n.description.toLowerCase().includes(currentNoteSearch)))).map((n, index) => `
                     <div id="note-${n.id}" style="background: white; border-radius: 24px; overflow: hidden; border: 1px solid #F1F5F9; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-8px)';this.style.boxShadow='0 20px 40px rgba(0,0,0,0.1)'">
                         <div style="background: linear-gradient(135deg, ${getCardColor(index).start}, ${getCardColor(index).end}); padding: 50px 28px 28px; color: white; position: relative;">
                             <div style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.25); padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; backdrop-filter: blur(4px);">
