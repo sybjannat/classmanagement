@@ -3411,21 +3411,29 @@
             } catch (e) { }
 
             const telegramBotToken = settings.telegramBotToken || '8709813213:AAECnorYy9nMuM0TR6BgM3eQ3zCyGL2G7AI';
-            const telegramChatId = settings.telegramChatId || '';
+            const telegramChatId = settings.telegramChatId || '-1001733013725';
 
-            // Ensure chat_id is a string
-            const chatIdStr = String(telegramChatId);
+            // Ensure chat_id is a string and properly formatted for channels
+            let chatIdStr = String(telegramChatId).trim();
+
+            // Add -100 prefix if missing for channel IDs (format: -100XXXXXXXXX)
+            if (chatIdStr.startsWith('-') && !chatIdStr.startsWith('-100') && chatIdStr.length > 3) {
+                chatIdStr = '-100' + chatIdStr.replace(/^-/, '');
+            }
+
             console.log('[Telegram] Sending to chat:', chatIdStr, 'bot:', telegramBotToken.substring(0, 10) + '...');
 
-            if (!telegramBotToken || !chatIdStr) {
+            if (!telegramBotToken || !chatIdStr || chatIdStr === '-100') {
                 console.log('Telegram not configured - please set chat ID in settings');
                 alert('Telegram not configured! Please go to Settings and enter your Telegram Bot Token and Chat ID.');
                 return;
             }
 
-            const messageText = `${title}\n\n${description || ''}`;
+            // Build message with priority indicator
+            const priorityEmoji = priority === 'high' ? '🔴 ' : '🟢 ';
+            const messageText = `${priorityEmoji}${title}\n\n${description || ''}\n\n_ Sent from YE-48 Class Management_`;
 
-            // Use JSON body
+            // Use JSON body with parse_mode for Markdown
             try {
                 const response = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
                     method: 'POST',
@@ -3434,20 +3442,32 @@
                     },
                     body: JSON.stringify({
                         chat_id: chatIdStr,
-                        text: messageText
+                        text: messageText,
+                        parse_mode: 'Markdown'
                     })
                 });
+
+                // Check if response is valid JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    console.error('[Telegram] Invalid response content type:', contentType);
+                    const textResponse = await response.text();
+                    console.error('[Telegram] Raw response:', textResponse);
+                    alert('Telegram API error: Invalid response from server. Check console for details.');
+                    return;
+                }
+
                 const result = await response.json();
                 console.log('[Telegram] Response:', result);
                 if (result.ok) {
                     console.log('Telegram notification sent successfully');
                 } else {
                     console.error('Telegram API error:', result);
-                    alert('Telegram error: ' + result.description + '. Check console for details.');
+                    alert('Telegram error: ' + (result.description || 'Unknown error') + ' (Code: ' + result.error_code + ')');
                 }
             } catch (e) {
                 console.error('Error sending Telegram notification:', e);
-                alert('Network error sending Telegram notification. Check console for details.');
+                alert('Network error sending Telegram notification: ' + e.message);
             }
         }
 

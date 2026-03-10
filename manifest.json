@@ -2,7 +2,7 @@
   "name": "YE-48 Class Management",
   "short_name": "YE-48",
   "description": "Class Management System for YE-48 Batch - Manage notices, notes, routine, and more",
-  "start_url": "/class.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#8B5CF6",
